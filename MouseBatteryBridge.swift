@@ -7,6 +7,8 @@ import ServiceManagement
 
 private let nearcastGroupKey = "nearcastGroupID"
 
+private var deviceListPrinted: Bool = false  // 是否打印过设备列表，避免重复打印
+
 private typealias PowerSourceID = UnsafeMutableRawPointer
 @_silgen_name("IOPSCreatePowerSource") private func IOPSCreatePowerSource(_ source: UnsafeMutablePointer<PowerSourceID?>) -> IOReturn
 @_silgen_name("IOPSSetPowerSourceDetails") private func IOPSSetPowerSourceDetails(_ source: PowerSourceID, _ details: CFDictionary) -> IOReturn
@@ -21,40 +23,86 @@ private struct BatteryReading: Equatable {
 // 适配其他鼠标时从这里开始。其余代码只使用 BatteryReading，
 // 不需要了解设备的私有 HID 协议。
 private enum DeviceAdapter {
-    static let displayName = "京东京造 JZM5"
-    static let appName = "京东京造 JZM5 电量"
-    static let accessoryIdentifier = "JZM5-2.4G"
+    static let displayName = "ATK A9 Ultra Max三模"
+    static let appName = "MouseBatteryBridge"
+    static let accessoryIdentifier = "ATK-A9-2.4G"
     static let deviceType = "Mouse"
 
-    static let receiverVendorID = 0x362D
-    static let receiverProductID = 0xD107
-    static let accessoryProductID = 0xD20F
-    static let usagePage = 0x008C
-    static let usage = 0x0001
+    static let receiverVendorID = 0x373B
+    static let receiverProductID = 0x11FE
+    static let accessoryProductID = 0x120F
+    static let usagePage = 0xFF05
+    static let usage = 0x00
 
-    static let outputReportID: CFIndex = 0xB3
-    static let inputReportID: UInt32 = 0xB4
-    static let reportLength = 64
+    // 命令 ID（来自 hub.atk.pro 逆向协议）
+    static let cmdGetBattery: UInt8 = 0x04
+    static let cmdGetMouseVersion: UInt8 = 0x12
+    static let cmdGetDongleVersion: UInt8 = 0x1D
+
+    static let calChecksumWithReportID = true
+
+    static let outputReportID: CFIndex = 0x08
+    static let inputReportID: UInt32 = 0x08
+    static let reportLength = 16  // payload 长度（不含 Report ID）
+
     static let timeout: TimeInterval = 3
+    static let queryInterval: TimeInterval = 10  // 电量轮询间隔，单位秒
+
+    // 计算校验和
+    // 计算公式：校验和 = (85 - (字节 0～14 的和) & 255) & 0xFF
+    // calChecksumWithReportID=true 时把 Report ID 计入总和
+    // 与 JS 源码一致: checkSum = 85 - (sum([8, ...payload[0..14]]) & 255)
+    static func calcChecksum(reportID: UInt8, data: [UInt8]) -> UInt8 {
+        var total = data.prefix(15).reduce(0) { $0 + UInt32($1) }
+        if (calChecksumWithReportID) {
+            total += UInt32(reportID)
+        }
+        return UInt8((85 - (total & 255)) & 0xFF)
+    }
 
     // IOKit 要求 Report ID 既作为 IOHIDDeviceSetReport 的参数传入，
     // 也放在缓冲区第 0 字节；WebHID 的 Payload 从第 1 字节开始。
-    static func makeQueryReport() -> [UInt8] {
-        var report = [UInt8](repeating: 0, count: reportLength)
+    // 注意：report 缓冲区 = 1 字节 Report ID + reportLength 字节 payload
+    static func makeCommandReport(commandId: UInt8) -> [UInt8] {
+        var payload = [UInt8](repeating: 0, count: reportLength)
+        payload[0] = commandId
+        payload[15] = calcChecksum(reportID: UInt8(outputReportID), data: payload)
+
+        var report = [UInt8](repeating: 0, count: reportLength + 1)
         report[0] = UInt8(outputReportID)
-        report[1] = 0x06
+        report[1...] = payload[0...]
         return report
     }
 
+    static func makeQueryReport() -> [UInt8] {
+        return makeCommandReport(commandId: cmdGetBattery)
+    }
+
     static func parse(reportID: UInt32, bytes: [UInt8]) -> BatteryReading? {
+        NSLog("收到回包：\(bytes.map { String(format: "%02X", $0) }.joined(separator: " "))")
         guard reportID == inputReportID else { return nil }
         var payload = bytes
         if payload.first == UInt8(inputReportID) { payload.removeFirst() }
-        guard payload.count > 19, payload[0] == 0x06 else { return nil }
-        return BatteryReading(
-            percent: Int(payload[19] & 0x7F),
-            isCharging: (payload[19] & 0x80) != 0
-        )
+        // Compx 协议: GetBatteryLevel=0x04, 响应 commandId 回显 0x04
+        // payload[5]=batteryLevel, payload[6]=batteryCharge
+        guard payload.count > 6, payload[0] == cmdGetBattery else { return nil }
+        let percent = Int(payload[5] & 0xFF)
+        let isCharging = (payload[6] & 0xFF) != 0
+        NSLog("解析电量回包: percent=\(percent), isCharging=\(isCharging)")
+        return BatteryReading(percent: percent, isCharging: isCharging)
+    }
+
+    // 解析版本响应（GetMouseVersion=0x12 / GetDongleVersion=0x1D）
+    // 版本格式：payload[5]=主版本, payload[6]=次版本 → "X.YY" (hex)
+    static func parseVersion(reportID: UInt32, bytes: [UInt8]) -> (commandId: UInt8, version: String)? {
+        guard reportID == inputReportID else { return nil }
+        var payload = bytes
+        if payload.first == UInt8(inputReportID) { payload.removeFirst() }
+        guard payload.count > 6 else { return nil }
+        guard payload[0] == cmdGetMouseVersion || payload[0] == cmdGetDongleVersion else { return nil }
+        let major = payload[5]
+        let minor = payload[6]
+        return (payload[0], String(format: "%X.%02X", major, minor))
     }
 }
 
@@ -232,6 +280,7 @@ private final class NearcastSender: NSObject, MCNearbyServiceBrowserDelegate, MC
 private final class QueryState {
     let buffer = UnsafeMutablePointer<UInt8>.allocate(capacity: 256)
     var reading: BatteryReading?
+    var version: (commandId: UInt8, version: String)?
 
     init() { buffer.initialize(repeating: 0, count: 256) }
     deinit { buffer.deinitialize(count: 256); buffer.deallocate() }
@@ -246,19 +295,39 @@ private let inputCallback: IOHIDReportCallback = { context, _, _, _, reportID, r
     guard let context else { return }
     let state = Unmanaged<QueryState>.fromOpaque(context).takeUnretainedValue()
     let bytes = Array(UnsafeBufferPointer(start: report, count: length))
-    guard let reading = DeviceAdapter.parse(reportID: reportID, bytes: bytes) else { return }
-    state.reading = reading
+    if let reading = DeviceAdapter.parse(reportID: reportID, bytes: bytes) {
+        state.reading = reading
+    }
+    if let version = DeviceAdapter.parseVersion(reportID: reportID, bytes: bytes) {
+        state.version = version
+    }
 }
 
-private func readBattery() throws -> BatteryReading {
+/// 打开接收器并注册 Input Report 回调，执行 body 后自动清理。
+/// 复用设备打开逻辑，避免 readBattery / readDeviceInfo 重复代码。
+private func withReceiver<T>(_ body: (IOHIDDevice, QueryState) throws -> T) throws -> T {
     let manager = IOHIDManagerCreate(kCFAllocatorDefault, IOOptionBits(kIOHIDOptionsTypeNone))
     IOHIDManagerSetDeviceMatching(manager, [
         kIOHIDVendorIDKey as String: DeviceAdapter.receiverVendorID,
         kIOHIDProductIDKey as String: DeviceAdapter.receiverProductID
     ] as CFDictionary)
     let managerResult = IOHIDManagerOpen(manager, IOOptionBits(kIOHIDOptionsTypeNone))
+    // NSLog("IOHIDManagerOpen: 0x\(String(UInt32(bitPattern: managerResult), radix: 16, uppercase: true))")
     guard managerResult == kIOReturnSuccess else { throw BridgeError.open(managerResult) }
     defer { IOHIDManagerClose(manager, IOOptionBits(kIOHIDOptionsTypeNone)) }
+
+    if !deviceListPrinted {
+        let devicelist = IOHIDManagerCopyDevices(manager) as? Set<IOHIDDevice> ?? []
+        NSLog("IOHIDManagerCopyDevices: \(devicelist.count) 个设备")
+        for device in devicelist {
+            let vendorID = number(device, kIOHIDVendorIDKey as CFString) ?? 0
+            let productID = number(device, kIOHIDProductIDKey as CFString) ?? 0
+            let usagePage = number(device, kIOHIDPrimaryUsagePageKey as CFString) ?? 0
+            let usage = number(device, kIOHIDPrimaryUsageKey as CFString) ?? 0
+            NSLog("设备: VendorID=0x\(String(vendorID, radix: 16)), ProductID=0x\(String(productID, radix: 16)), UsagePage=0x\(String(usagePage, radix: 16)), Usage=0x\(String(usage, radix: 16))")
+        }
+        deviceListPrinted = true
+    }
 
     guard let devices = IOHIDManagerCopyDevices(manager) as? Set<IOHIDDevice>, let receiver = devices.first(where: {
         number($0, kIOHIDPrimaryUsagePageKey as CFString) == DeviceAdapter.usagePage &&
@@ -275,18 +344,68 @@ private func readBattery() throws -> BatteryReading {
     IOHIDDeviceScheduleWithRunLoop(receiver, CFRunLoopGetCurrent(), CFRunLoopMode.defaultMode.rawValue)
     defer { IOHIDDeviceUnscheduleFromRunLoop(receiver, CFRunLoopGetCurrent(), CFRunLoopMode.defaultMode.rawValue) }
 
-    let request = DeviceAdapter.makeQueryReport()
+    return try body(receiver, state)
+}
+
+/// 发送命令并等待匹配的响应。
+/// 返回 (commandId, version) 或 nil（超时/无匹配）。
+private func sendCommand(_ receiver: IOHIDDevice, _ state: QueryState, commandId: UInt8, timeout: TimeInterval = DeviceAdapter.timeout) -> (commandId: UInt8, version: String)? {
+    let request = DeviceAdapter.makeCommandReport(commandId: commandId)
     let result = request.withUnsafeBytes {
         IOHIDDeviceSetReport(receiver, kIOHIDReportTypeOutput, DeviceAdapter.outputReportID, $0.bindMemory(to: UInt8.self).baseAddress!, request.count)
     }
-    guard result == kIOReturnSuccess else { throw BridgeError.send(result) }
+    guard result == kIOReturnSuccess else { return nil }
 
-    let deadline = Date().addingTimeInterval(DeviceAdapter.timeout)
-    while state.reading == nil && Date() < deadline {
+    let deadline = Date().addingTimeInterval(timeout)
+    while Date() < deadline {
         RunLoop.current.run(mode: .default, before: Date().addingTimeInterval(0.05))
+        if let version = state.version, version.commandId == commandId {
+            return version
+        }
     }
-    guard let reading = state.reading else { throw BridgeError.noResponse }
-    return reading
+    return nil
+}
+
+/// 读取设备信息（GetMouseVersion / GetDongleVersion），以日志形式打印结果。
+/// 校验码由 makeCommandReport 内部通过 calcChecksum 计算，
+/// 自动遵循 calChecksumWithReportID flag。
+private func readDeviceInfo() {
+    do {
+        try withReceiver { receiver, state in
+            // GetMouseVersion (0x12)
+            if let mouseVersion = sendCommand(receiver, state, commandId: DeviceAdapter.cmdGetMouseVersion) {
+                NSLog("GetMouseVersion: %@", mouseVersion.version)
+            } else {
+                NSLog("GetMouseVersion: 未收到有效响应")
+            }
+
+            // GetDongleVersion (0x1D)
+            if let dongleVersion = sendCommand(receiver, state, commandId: DeviceAdapter.cmdGetDongleVersion) {
+                NSLog("GetDongleVersion: %@", dongleVersion.version)
+            } else {
+                NSLog("GetDongleVersion: 未收到有效响应")
+            }
+        }
+    } catch {
+        NSLog("读取设备信息失败: %@", "\(error)")
+    }
+}
+
+private func readBattery() throws -> BatteryReading {
+    try withReceiver { receiver, state in
+        let request = DeviceAdapter.makeQueryReport()
+        let result = request.withUnsafeBytes {
+            IOHIDDeviceSetReport(receiver, kIOHIDReportTypeOutput, DeviceAdapter.outputReportID, $0.bindMemory(to: UInt8.self).baseAddress!, request.count)
+        }
+        guard result == kIOReturnSuccess else { throw BridgeError.send(result) }
+
+        let deadline = Date().addingTimeInterval(DeviceAdapter.timeout)
+        while state.reading == nil && Date() < deadline {
+            RunLoop.current.run(mode: .default, before: Date().addingTimeInterval(0.05))
+        }
+        guard let reading = state.reading else { throw BridgeError.noResponse }
+        return reading
+    }
 }
 
 final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
@@ -324,7 +443,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             guard let self, self.lastReading == nil else { return }
             self.updateBattery()
         }
-        timer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in self?.updateBattery() }
+        timer = Timer.scheduledTimer(withTimeInterval: DeviceAdapter.queryInterval, repeats: true) {
+                [weak self] _ in self?.updateBattery()
+            }
     }
 
     private var launchAtLoginEnabled: Bool { SMAppService.mainApp.status == .enabled }
@@ -359,6 +480,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private func updateBattery() {
         do {
+            // 首次启动时读取设备信息（GetMouseVersion / GetDongleVersion），日志打印
+            if lastReading == nil {
+                readDeviceInfo()
+            }
             let reading = try readBattery()
             lastReading = reading
             if powerSource == nil { powerSource = try PowerSource() }
