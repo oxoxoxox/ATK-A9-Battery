@@ -14,6 +14,6 @@ struct BatterySnapshot {
 
 enum DeviceCatalog {
     static func makeProviders() -> [BatteryProvider] {
-        []
+        [ATKA9Provider()]
     }
 }
