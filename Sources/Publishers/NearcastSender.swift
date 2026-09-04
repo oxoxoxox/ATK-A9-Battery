@@ -96,7 +96,7 @@ final class NearcastSender: NSObject, MCNearbyServiceBrowserDelegate, MCNearbySe
             if refresh { requestRefresh() }
             return true
         } catch {
-            NSLog("Nearcast 发送失败：\(error)")
+            MBLog.log("Nearcast 发送失败：\(error)")
             return false
         }
     }
@@ -116,8 +116,8 @@ final class NearcastSender: NSObject, MCNearbyServiceBrowserDelegate, MCNearbySe
     }
 
     func browser(_ browser: MCNearbyServiceBrowser, lostPeer peerID: MCPeerID) {}
-    func browser(_ browser: MCNearbyServiceBrowser, didNotStartBrowsingForPeers error: Error) { NSLog("Nearcast 浏览失败：\(error)") }
-    func advertiser(_ advertiser: MCNearbyServiceAdvertiser, didNotStartAdvertisingPeer error: Error) { NSLog("Nearcast 广播失败：\(error)") }
+    func browser(_ browser: MCNearbyServiceBrowser, didNotStartBrowsingForPeers error: Error) { MBLog.log("Nearcast 浏览失败：\(error)") }
+    func advertiser(_ advertiser: MCNearbyServiceAdvertiser, didNotStartAdvertisingPeer error: Error) { MBLog.log("Nearcast 广播失败：\(error)") }
 
     func advertiser(_ advertiser: MCNearbyServiceAdvertiser, didReceiveInvitationFromPeer peerID: MCPeerID, withContext context: Data?, invitationHandler: @escaping (Bool, MCSession?) -> Void) {
         invitationHandler(true, session)

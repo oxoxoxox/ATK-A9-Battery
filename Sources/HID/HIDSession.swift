@@ -79,13 +79,13 @@ enum HIDSession {
 
         if !deviceListPrinted {
             let list = IOHIDManagerCopyDevices(manager) as? Set<IOHIDDevice> ?? []
-            NSLog("IOHIDManagerCopyDevices: \(list.count) 个设备")
+            MBLog.log("IOHIDManagerCopyDevices: \(list.count) 个设备")
             for device in list {
                 let vendorID = number(device, kIOHIDVendorIDKey as CFString) ?? 0
                 let productID = number(device, kIOHIDProductIDKey as CFString) ?? 0
                 let usagePage = number(device, kIOHIDPrimaryUsagePageKey as CFString) ?? 0
                 let usage = number(device, kIOHIDPrimaryUsageKey as CFString) ?? 0
-                NSLog("设备: VendorID=0x\(String(vendorID, radix: 16)), ProductID=0x\(String(productID, radix: 16)), UsagePage=0x\(String(usagePage, radix: 16)), Usage=0x\(String(usage, radix: 16))")
+                MBLog.log("设备: VendorID=0x\(String(vendorID, radix: 16)), ProductID=0x\(String(productID, radix: 16)), UsagePage=0x\(String(usagePage, radix: 16)), Usage=0x\(String(usage, radix: 16))")
             }
             deviceListPrinted = true
         }

@@ -34,10 +34,10 @@ final class ATKA9Provider: BatteryProvider {
                 bytes: CompxCodec.makeCommandReport(commandId: CompxCodec.cmdGetBattery)
             )
             return try connection.awaitInput(timeout: self.timeout) { reportID, bytes in
-                NSLog("收到回包：\(bytes.map { String(format: "%02X", $0) }.joined(separator: " "))")
+                MBLog.log("收到回包：\(bytes.map { String(format: "%02X", $0) }.joined(separator: " "))")
                 let reading = CompxCodec.parseBattery(reportID: reportID, bytes: bytes)
                 if let reading {
-                    NSLog("解析电量回包: percent=\(reading.percent), isCharging=\(reading.isCharging)")
+                    MBLog.log("解析电量回包: percent=\(reading.percent), isCharging=\(reading.isCharging)")
                 }
                 return reading
             }
@@ -55,9 +55,9 @@ final class ATKA9Provider: BatteryProvider {
                     pair.commandId == commandId ? pair : nil
                 }
             }
-            NSLog("%@: %@", label, parsed.version)
+            MBLog.log("\(label): \(parsed.version)")
         } catch {
-            NSLog("%@: 未收到有效响应", label)
+            MBLog.log("\(label): 未收到有效响应")
         }
     }
 }

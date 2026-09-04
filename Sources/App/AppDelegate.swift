@@ -27,6 +27,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         launch.state = launchAtLoginEnabled ? .on : .off
         menu.addItem(launch)
         launchItem = launch
+        let openLog = NSMenuItem(title: "打开日志文件夹…", action: #selector(openLogFolder), keyEquivalent: "")
+        openLog.target = self
+        menu.addItem(openLog)
         let quit = NSMenuItem(title: "退出", action: #selector(quit), keyEquivalent: "q")
         quit.target = self
         menu.addItem(quit)
@@ -75,7 +78,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             if launchAtLoginEnabled { try SMAppService.mainApp.unregister() } else { try SMAppService.mainApp.register() }
             launchItem?.state = launchAtLoginEnabled ? .on : .off
         } catch {
-            NSLog("MouseBatteryBridge: \(error)")
+            MBLog.log("MouseBatteryBridge: \(error)")
         }
     }
 
@@ -88,7 +91,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             startNearcastIfConfigured()
             nearcast?.update(snapshot.reading)
         } catch {
-            NSLog("MouseBatteryBridge: \(error)")
+            MBLog.log("MouseBatteryBridge: \(error)")
         }
     }
 
@@ -114,7 +117,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let configuration = NSWorkspace.OpenConfiguration()
         configuration.activates = false
         NSWorkspace.shared.open(url, configuration: configuration) { _, error in
-            if let error { NSLog("AirBattery 后台刷新失败：\(error)") }
+            if let error { MBLog.log("AirBattery 后台刷新失败：\(error)") }
         }
     }
 
@@ -122,6 +125,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         guard nearcast?.sendOffline() == true else { return }
         Thread.sleep(forTimeInterval: 0.3)
         openAirBatteryRefresh()
+    }
+
+    @objc private func openLogFolder() {
+        NSWorkspace.shared.activateFileViewerSelecting([MBLog.logURL])
     }
 
     @objc private func quit() { NSApp.terminate(nil) }

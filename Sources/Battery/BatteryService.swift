@@ -26,15 +26,15 @@ final class BatteryService {
                 lastSnapshot = snapshot
                 return snapshot
             } catch BridgeError.noReceiver(let name) {
-                NSLog("%@: 未找到接收器 %@", provider.identity.appName, name)
+                MBLog.log("\(provider.identity.appName): 未找到接收器 \(name)")
             } catch {
                 sawNonReceiverError = true
-                NSLog("%@: %@", provider.identity.appName, "\(error)")
+                MBLog.log("\(provider.identity.appName): \(error)")
                 break
             }
         }
         if !sawNonReceiverError {
-            NSLog("MouseBatteryBridge: 未匹配到已连接的鼠标接收器")
+            MBLog.log("MouseBatteryBridge: 未匹配到已连接的鼠标接收器")
         }
         return nil
     }
