@@ -1,21 +1,21 @@
-# 京东京造 JZM5 电量
+# ATK A9 Ultra Max三模 电量
 
-让 macOS 电池小组件和 [AirBattery](https://github.com/lihaoyun6/AirBattery) 显示京东京造 JZM5 的 2.4G 模式电量。
+让 macOS 电池小组件和 [AirBattery](https://github.com/lihaoyun6/AirBattery) 显示 ATK A9 Ultra Max三模 的 2.4G 模式电量。
 
-程序直接读取接收器的私有 HID 电量报告，每分钟更新一次电量和充电状态，并在菜单栏提供权限状态、开机启动和退出选项。它不会修改 AirBattery，也不会写入 AirBattery 的容器目录。
+程序直接读取接收器的私有 HID 电量报告，每 10 秒更新一次电量和充电状态，并在菜单栏提供权限状态、开机启动和退出选项。它不会修改 AirBattery，也不会写入 AirBattery 的容器目录。
 
-![macOS 电池小组件显示京东京造 JZM5 电量](assets/macos-battery-widgets.png)
+![macOS 电池小组件显示 ATK A9 Ultra Max三模 电量](assets/macos-battery-widgets.png)
 
 ## 下载与启动
 
-1. 从 Releases 下载 `JZM5BatteryTray.app.zip`，解压后把应用拖到“应用程序”。
+1. 从 Releases 下载 `MouseBatteryBridge.app.zip`，解压后把应用拖到“应用程序”。
 2. 本项目没有 Apple Developer ID 签名和公证。若 macOS 提示应用已损坏或无法验证开发者，只移除本应用的下载隔离属性：
 
    ```bash
-   sudo xattr -dr com.apple.quarantine /Applications/JZM5BatteryTray.app
+   sudo xattr -dr com.apple.quarantine /Applications/MouseBatteryBridge.app
    ```
 
-3. 启动应用，点击菜单栏鼠标图标里的“输入监控授权…”，再到“系统设置 → 隐私与安全性 → 输入监控”允许“京东京造 JZM5 电量”。授权后重新启动应用。
+3. 启动应用，点击菜单栏鼠标图标里的“输入监控授权…”，再到“系统设置 → 隐私与安全性 → 输入监控”允许“MouseBatteryBridge for ATK A9 Ultra Max三模”。授权后重新启动应用。
 
 不要使用 `spctl --master-disable` 全局关闭 Gatekeeper。
 
@@ -24,23 +24,23 @@
 AirBattery 不是必需的；macOS 电池小组件可由本程序独立更新。需要同步到 AirBattery 时：
 
 1. 在 AirBattery 设置中开启 Nearcast。
-2. 在终端运行一次下面的命令，把 AirBattery 的 Nearcast 群组 ID 写入本程序自己的偏好设置：
+2. 在终端运行一次下面的命令，把 AirBattery 的 Nearcast 群组 ID 写入本程序自己的偏好设置（Bundle ID 以 `Info.plist` 的 `CFBundleIdentifier` = `local.atka9.MouseBatteryBridge` 为准）：
 
    ```bash
-   defaults write local.jzm5.batterytray nearcastGroupID \
+   defaults write local.atka9.MouseBatteryBridge nearcastGroupID \
      "$(defaults read com.lihaoyun6.AirBattery ncGroupID)"
    ```
 
-3. 重新启动 `JZM5BatteryTray.app`，并在 macOS 询问时允许其访问本地网络。
+3. 重新启动 `MouseBatteryBridge.app`，并在 macOS 询问时允许其访问本地网络。
 
 群组 ID 不会写入应用包或上传到网络。AirBattery 重置群组 ID、重新安装或换 Mac 后，需要重新执行上述命令。
 
 ## 注意事项
 
-- 仅适配京东京造 JZM5 的 2.4G 接收器 `VID 0x362D / PID 0xD107`，不适用于蓝牙模式或其他型号。
+- 仅适配 ATK A9 Ultra Max三模 的 2.4G 接收器 `VID 0x373B / PID 0x11FE`，不适用于蓝牙模式或其他型号。
 - 鼠标必须已与接收器配对；网页驱动运行时可能占用 HID 接口，测试前请关闭相关页面。
 - 应用需要“输入监控”权限读取 HID 报告；Nearcast 还需要“本地网络”权限。
-- 应用启动时立即查询一次，之后每 60 秒查询。读取失败时保留上一次有效电量，不会发布假 `0%`。
+- 应用启动时立即查询一次，5 秒后若仍无读数再查一次，之后每 10 秒查询。读取失败时保留上一次有效电量，不会发布假 `0%`。
 - 应用退出后，macOS 电源项会消失；AirBattery 会收到离线状态，但其界面或小组件可能要等下一次时间线刷新才消失。
 - 系统电池小组件的刷新由 macOS 调度，显示可能比真实电量晚一个刷新周期。
 - 系统电源项使用 macOS 的非公开 IOKit 接口，未来系统版本可能改变行为。
@@ -52,31 +52,68 @@ AirBattery 不是必需的；macOS 电池小组件可由本程序独立更新。
 
 ```bash
 ./build.sh
-open dist/JZM5BatteryTray.app
+open dist/MouseBatteryBridge.app
 ```
 
-构建脚本默认使用 ad-hoc 签名，不需要开发者证书。产物位于 `dist/JZM5BatteryTray.app`。如果本机有开发证书，建议用稳定身份构建，避免每次重新编译后都要重新授予输入监控权限：
+无硬件的协议断言可用 `./test.sh` 单独运行（只编译 codec 相关文件）。
+
+构建脚本默认使用 ad-hoc 签名，不需要开发者证书。产物位于 `dist/MouseBatteryBridge.app`。如果本机有开发证书，建议用稳定身份构建，避免每次重新编译后都要重新授予输入监控权限：
 
 ```bash
 CODE_SIGN_IDENTITY="Apple Development: 你的证书名称" ./build.sh
 ```
 
+## 代码结构
+
+```
+Sources/
+  Battery/    # 电量值对象、设备身份、Provider 协议、轮询服务
+  HID/        # VID/PID/Usage 匹配、IOKit 打开/发送/等待
+  Devices/    # 每只鼠标一个 Provider（ATK A9 用 CompxCodec 解析私有协议）
+  Publishers/ # 系统电源项（IOPS）与 AirBattery Nearcast
+  App/        # 菜单栏、权限、定时器、接线
+Tests/        # 无硬件的 CompxCodec 断言
+```
+
 ## 适配其他鼠标
 
-当前模板适合“发送 HID Output Report，然后等待异步 Input Report”的 2.4G 接收器。设备私有信息全部集中在 [JZM5BatteryTray.swift](JZM5BatteryTray.swift) 顶部的 `DeviceAdapter`：
+加一只同类鼠标只需新增 Provider，不必改菜单栏、电源项和 Nearcast：
 
-| 字段或函数 | 需要填写的内容 |
-| --- | --- |
-| `displayName` | 系统组件和 AirBattery 中显示的名称 |
-| `accessoryIdentifier` | 本程序内部使用的稳定设备 ID |
-| `receiverVendorID` / `receiverProductID` | USB 接收器的 VID/PID |
-| `accessoryProductID` | 配对鼠标的 PID，仅用于发布系统电源项 |
-| `usagePage` / `usage` | macOS 上承载私有协议的逻辑 HID 接口 |
-| `outputReportID` / `inputReportID` | 查询和响应的 Report ID |
-| `makeQueryReport()` | 构造完整查询报告 |
-| `parse(reportID:bytes:)` | 验证回包并返回电量、充电状态 |
+1. 新建 `Sources/Devices/<Vendor>/<Name>Provider.swift`，实现 `BatteryProvider`。
+2. 若协议是 Compx 同类（Output `0x08` + 16 字节 command），复用 `CompxCodec`，只换 `HIDMatch` 和 `DeviceIdentity`。
+3. 若只是字节布局不同但仍是 Output + Input Report，新建 `*Codec.swift`，继续用 `HIDSession`。
+4. 若改为 Feature Report / 广播 / BLE，不要改 `HIDSession`，在 Provider 内自己取电。
+5. 在 `DeviceCatalog.makeProviders()` 追加实例。数组顺序 = 匹配优先级；同一时间只服务第一只匹配成功的鼠标。
+6. `./test.sh`（有 codec 测试时）和 `./build.sh`。
 
-对新设备完成逆向后，一般只需修改这个区块和 `Info.plist` 中的应用名称。公共的 HID 枚举、定时查询、系统电源项、菜单栏与 Nearcast 不需要改。
+最小骨架：
+
+```swift
+final class OtherMouseProvider: BatteryProvider {
+    let identity = DeviceIdentity(
+        displayName: "...",
+        appName: "MouseBatteryBridge",
+        accessoryIdentifier: "...",
+        deviceType: "Mouse",
+        receiverVendorID: 0x0000,
+        accessoryProductID: 0x0000
+    )
+    let queryInterval: TimeInterval = 10
+    let timeout: TimeInterval = 3
+
+    func readBattery() throws -> BatteryReading {
+        try HIDSession.withDevice(match, displayName: identity.displayName) { connection in
+            try connection.sendOutput(reportID: ..., bytes: ...)
+            return try connection.awaitInput(timeout: timeout) { reportID, bytes in
+                // parse → BatteryReading?
+                nil
+            }
+        }
+    }
+}
+```
+
+然后：`DeviceCatalog.makeProviders() -> [ATKA9Provider(), OtherMouseProvider()]`。
 
 ### 从网页驱动快速抓 HID 报文
 
@@ -152,7 +189,7 @@ isCharging
 - Input Report ID、Payload 长度和完整响应字节。
 - 网页解析电量和充电状态的代码。
 
-WebHID 的 `event.reportId` 是单独参数，`event.data` 通常不包含 Report ID；IOKit 某些设备会把 Report ID 同时放在缓冲区第 0 字节。当前解析函数兼容这两种输入布局。
+WebHID 的 `event.reportId` 是单独参数，`event.data` 通常不包含 Report ID；IOKit 某些设备会把 Report ID 同时放在缓冲区第 0 字节。`CompxCodec.parseBattery` 兼容这两种输入布局。
 
 ### 快速找到电量字节和充电位
 
@@ -181,18 +218,18 @@ for offset, (old, new) in enumerate(zip(before, after)):
 - 最后一个变化字节经常是校验和。先在网页脚本里搜索求和、XOR、CRC 等计算。
 - 至少重复三轮插线/拔线，避免把配置档位、回报率变化误认为充电状态。
 
-JZM5 的结果是：
+（历史模板）京东京造 JZM5 的结果是：
 
 ```text
 payload[19] & 0x7F       = 电量百分比
 (payload[19] & 0x80) != 0 = 正在充电
 ```
 
-也就是同一个字节的低 7 位保存电量，最高位保存充电状态。
+也就是同一个字节的低 7 位保存电量，最高位保存充电状态。ATK A9 的对应布局见 `CompxCodec.parseBattery`：`payload[5]` 电量、`payload[6]` 充电标志。
 
 ### 确认 macOS 的 HID 接口
 
-网页看到的 Collection 不一定等于 macOS 枚举出的主 Usage。JZM5 网页使用 `0xFFC1 / 0x01`，macOS 上对应的逻辑设备却显示为 `0x008C / 0x01`。先用十进制 VID/PID 查看候选接口：
+网页看到的 Collection 不一定等于 macOS 枚举出的主 Usage。先用十进制 VID/PID 查看候选接口（例：历史模板 JZM5 `VID 0x362D / PID 0xD107`）：
 
 ```bash
 hidutil list --matching '{"VendorID":13869,"ProductID":53511}'
@@ -201,26 +238,26 @@ hidutil list --matching '{"VendorID":13869,"ProductID":53511}'
 十六进制转十进制可用：
 
 ```bash
-printf '%d\n' 0x362D
-printf '%d\n' 0xD107
+printf '%d\n' 0x373B
+printf '%d\n' 0x11FE
 ```
 
-把枚举出的 `PrimaryUsagePage` 和 `PrimaryUsage` 写入 `DeviceAdapter.usagePage`、`DeviceAdapter.usage`。如果存在多个接口，优先测试厂商自定义 Usage Page，不要向普通鼠标移动或键盘输入接口发送私有命令。
+把枚举出的 `PrimaryUsagePage` 和 `PrimaryUsage` 写入 `HIDMatch`。如果存在多个接口，优先测试厂商自定义 Usage Page，不要向普通鼠标移动或键盘输入接口发送私有命令。
 
 ### 填入适配区并验证
 
-1. 把 VID/PID、Usage、Report ID 填入 `DeviceAdapter`。
-2. 在 `makeQueryReport()` 中复刻网页发送的完整报告。注意 IOKit 对部分设备要求缓冲区第 0 字节包含 Report ID。
-3. 在 `parse(reportID:bytes:)` 中先验证响应类型和命令字，再解析电量及充电位。
+1. 新建 `Sources/Devices/<Vendor>/<Name>Provider.swift`，填入 VID/PID、Usage、Report ID 与 `DeviceIdentity`。
+2. 在 codec 的组包函数中复刻网页发送的完整报告。注意 IOKit 对部分设备要求缓冲区第 0 字节包含 Report ID。
+3. 在解析函数中先验证响应类型和命令字，再解析电量及充电位。
 4. 关闭网页驱动，避免浏览器同时占用接口。
-5. 执行 `./build.sh`，运行 `dist/JZM5BatteryTray.app`。
+5. 执行 `./build.sh`，运行 `dist/MouseBatteryBridge.app`。
 6. 分别测试未充电、充电中和电量变化，确认系统组件与 AirBattery 一致。
 
-如果新设备使用 Feature Report、加密会话、动态校验或主动广播而不是“Output + Interrupt-IN”，还需要对应调整 `readBattery()`；这些行为无法只靠更换字节偏移完成。
+如果新设备使用 Feature Report、加密会话、动态校验或主动广播而不是“Output + Interrupt-IN”，需要在 Provider 内自己实现取电；这些行为无法只靠更换字节偏移完成。
 
 ## 工作原理
 
-程序在接收器的 `Usage Page 0x008C / Usage 0x01` 接口发送 Output Report `0xB3 + 0x06`，从 Input Report `0xB4` 的第 19 字节解析电量和充电状态。随后将结果发布为 macOS Accessory Power Source，并可选通过 AirBattery Nearcast 在本机同步。
+ATK A9：程序在接收器的 `Usage Page 0xFF05 / Usage 0x00` 接口发送 Output Report `0x08`（16 字节命令，首字节为命令 ID，末字节校验和 = `85 - sum & 255`），从 Input Report `0x08` 的 `payload[5]`/`payload[6]` 解析电量和充电状态。随后将结果发布为 macOS Accessory Power Source，并可选通过 AirBattery Nearcast 在本机同步。
 
 ## Contributors
 
