@@ -36,7 +36,14 @@ done
 
 iconutil -c icns "$icon_tmp/AppIcon.iconset" -o "$app/Contents/Resources/AppIcon.icns"
 
-swiftc "$project_dir/MouseBatteryBridge.swift" \
+setopt null_glob
+swift_files=("$project_dir"/Sources/**/*.swift)
+if (( ${#swift_files[@]} == 0 )); then
+  echo "no Swift sources under Sources/" >&2
+  exit 1
+fi
+
+swiftc "${swift_files[@]}" \
   -target arm64-apple-macos13.0 \
   -framework AppKit \
   -framework IOKit \
