@@ -1,7 +1,9 @@
 import Foundation
+import os
 
 enum MBLog {
     static let logURL = URL(fileURLWithPath: NSString(string: "~/Library/Logs/MouseBatteryBridge.log").expandingTildeInPath)
+    private static let logger = Logger(subsystem: "local.atka9.MouseBatteryBridge", category: "bridge")
     private static let queue = DispatchQueue(label: "local.atka9.MouseBatteryBridge.log")
     private static let maxBytes = 1024 * 1024
     private static let trimTargetBytes = maxBytes / 2
@@ -13,7 +15,7 @@ enum MBLog {
     }()
 
     static func log(_ message: String) {
-        NSLog("%@", message)
+        logger.log("\(message, privacy: .public)")
         let line = "\(formatter.string(from: Date())) \(message)\n"
         queue.async { append(line) }
     }
