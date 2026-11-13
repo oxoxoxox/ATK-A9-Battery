@@ -17,6 +17,7 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
         panelHost = NSHostingController(rootView: StatusPanelView(model: model, actions: actions))
         super.init()
 
+        panelHost.sizingOptions = [.preferredContentSize]
         popover.contentViewController = panelHost
         popover.behavior = .transient
         popover.animates = true
@@ -136,8 +137,8 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
         // NSPopover 在鼠标按下时若点在外部即会关闭；同一次按下触发的点击动作只负责关闭，不再重开。
         if let timestamp = NSApp.currentEvent?.timestamp, timestamp == closingEventTime { return }
         actions.willOpenPanel()
-        // 状态会变（例如出现两行的提示文字），每次弹出前按当前内容重新量尺寸。
-        popover.contentSize = panelHost.view.fittingSize
+        // 先让布局反映刚更新的状态，preferredContentSize 才是最新高度；之后内容变化由 NSPopover 持续跟随。
+        panelHost.view.layoutSubtreeIfNeeded()
         popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
         NSApp.bringToFront()
     }
