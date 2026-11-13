@@ -61,9 +61,13 @@ final class StatusModel: ObservableObject {
         reading != nil && connection != .connected
     }
 
-    // 未授权且读不到数据时，权限才是最可能的原因；已经连上就以实际读数为准。
+    // 未授权且查找或读取失败时，权限才是最可能的原因；首次查找阶段还不知道结果，已连上则以实际读数为准。
     private var needsPermission: Bool {
-        !inputMonitoringGranted && connection != .connected
+        guard !inputMonitoringGranted else { return false }
+        switch connection {
+        case .notFound, .failed: return true
+        case .searching, .connected: return false
+        }
     }
 
     func apply(_ update: BatteryUpdate, at date: Date = Date()) {
@@ -139,15 +143,18 @@ final class StatusModel: ObservableObject {
     var summary: String {
         guard let reading else {
             switch connection {
-            case .searching: return "正在查找接收器…"
+            case .searching, .connected: return "正在查找接收器…"
             case .notFound: return "\(deviceName) · 未连接"
             case .failed: return "\(deviceName) · 读取失败"
-            case .connected: return deviceName
             }
         }
         let base = "\(deviceName) · \(reading.percent)%"
-        if isStale { return base + "（未连接）" }
-        return reading.isCharging ? base + " · 充电中" : base
+        switch connection {
+        case .connected: return reading.isCharging ? base + " · 充电中" : base
+        case .searching: return base
+        case .notFound: return base + "（未连接）"
+        case .failed: return base + "（读取失败）"
+        }
     }
 
     private func time(_ date: Date) -> String {

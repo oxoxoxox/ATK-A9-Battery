@@ -23,6 +23,9 @@ func runStatusModelTests() {
     check(initial.summary == "正在查找接收器…", "initial summary is searching")
     check(initial.reading == nil && !initial.isStale, "initial model has no reading and is not stale")
 
+    let searchingWithoutPermission = model(permission: false)
+    check(searchingWithoutPermission.headline.text == "正在查找接收器", "searching does not claim missing permission yet")
+
     let normal = model()
     normal.isRefreshing = true
     normal.apply(reading(72))
@@ -66,9 +69,20 @@ func runStatusModelTests() {
     check(failed.detail == "2 秒内未收到有效电量回包", "failed detail is the error message")
     check(failed.summary == "测试鼠标 · 读取失败", "failed summary")
 
+    let failedAfterReading = model()
+    failedAfterReading.apply(reading(64))
+    failedAfterReading.apply(.failed("2 秒内未收到有效电量回包"))
+    check(failedAfterReading.isStale, "failure after a reading keeps it as stale")
+    check(failedAfterReading.headline.text == "读取失败", "failure after a reading says read failed")
+    check(failedAfterReading.summary == "测试鼠标 · 64%（读取失败）", "failure summary does not say disconnected")
+
     let noPermission = model(permission: false)
     noPermission.apply(.failed("打开 HID 接收器失败"))
     check(noPermission.headline.text == "需要输入监控授权", "missing permission takes precedence over failure")
+
+    let notFoundWithoutPermission = model(permission: false)
+    notFoundWithoutPermission.apply(.notFound)
+    check(notFoundWithoutPermission.headline.text == "需要输入监控授权", "missing permission explains a not-found result")
 
     let permissionButConnected = model(permission: false)
     permissionButConnected.apply(reading(72))
