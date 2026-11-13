@@ -2,7 +2,7 @@
 
 让 macOS 电池小组件和 [AirBattery](https://github.com/lihaoyun6/AirBattery) 显示 ATK A9 Ultra Max三模 的 2.4G 模式电量。
 
-程序直接读取接收器的私有 HID 电量报告，每 10 秒更新一次电量和充电状态。菜单栏会显示电量百分比（充电时带闪电图标）；点击图标弹出悬浮面板，查看电量环、连接状态、输入监控授权、开机启动和 AirBattery 同步状态，并可立即刷新、打开日志文件夹、查看关于页面或退出；右键图标则打开系统风格的快捷菜单。它不会修改 AirBattery，也不会写入 AirBattery 的容器目录。
+程序直接读取接收器的私有 HID 电量报告，每 10 秒更新一次电量和充电状态。菜单栏显示的内容可以在“设置”中选择：只显示鼠标图标；只显示电量数值和闪电；鼠标图标加电量数值和闪电（默认）；鼠标图标加电量数值。点击图标弹出悬浮面板，查看电量环、连接状态、输入监控授权、开机启动和 AirBattery 同步状态，并可打开设置、立即刷新、打开日志文件夹、查看关于页面或退出；右键图标则打开系统风格的快捷菜单。它不会修改 AirBattery，也不会写入 AirBattery 的容器目录。
 
 ![macOS 电池小组件显示 ATK A9 Ultra Max三模 电量](assets/macos-battery-widgets.png)
 
@@ -74,7 +74,8 @@ Sources/
   HID/        # VID/PID/Usage 匹配、IOKit 打开/发送/等待
   Devices/    # 每只鼠标一个 Provider（ATK A9 用 CompxCodec 解析私有协议）
   Publishers/ # 系统电源项（IOPS）与 AirBattery Nearcast
-  UI/         # 菜单栏图标与百分比、悬浮面板（SwiftUI）、关于窗口、状态模型
+  Settings/   # 菜单栏显示模式与 UserDefaults 持久化
+  UI/         # 菜单栏图标与百分比、悬浮面板（SwiftUI）、设置与关于窗口、状态模型
   App/        # 生命周期、定时器（后台查询）、权限与开机启动动作、接线
 Tests/        # 无硬件的 CompxCodec 断言
 ```

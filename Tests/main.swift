@@ -2,6 +2,7 @@ import Foundation
 
 runCompxCodecTests()
 runStatusModelTests()
+runSettingsTests()
 
 if failed {
     fputs("tests failed\n", stderr)

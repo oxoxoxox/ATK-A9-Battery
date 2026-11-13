@@ -5,14 +5,21 @@ import SwiftUI
 final class StatusItemController: NSObject, NSPopoverDelegate {
     private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
     private let model: StatusModel
+    private let settings: AppSettings
     private let actions: AppActions
     private let popover = NSPopover()
     private let panelHost: NSHostingController<StatusPanelView>
+    private lazy var menuBarIcon: NSImage? = {
+        let image = NSImage(systemSymbolName: "computermouse", accessibilityDescription: "MouseBatteryBridge")
+        image?.isTemplate = true
+        return image
+    }()
     private var closingEventTime: TimeInterval?
     private var cancellable: AnyCancellable?
 
-    init(model: StatusModel, actions: AppActions) {
+    init(model: StatusModel, settings: AppSettings, actions: AppActions) {
         self.model = model
+        self.settings = settings
         self.actions = actions
         panelHost = NSHostingController(rootView: StatusPanelView(model: model, actions: actions))
         super.init()
@@ -24,17 +31,13 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
         popover.delegate = self
 
         if let button = statusItem.button {
-            let image = NSImage(systemSymbolName: "computermouse", accessibilityDescription: "MouseBatteryBridge")
-            image?.isTemplate = true
-            button.image = image
-            button.imagePosition = .imageLeading
             button.target = self
             button.action = #selector(buttonClicked)
             button.sendAction(on: [.leftMouseDown, .rightMouseUp])
         }
 
         // objectWillChange 早于属性写入，切回主队列后再读取即为最新值。
-        cancellable = model.objectWillChange
+        cancellable = Publishers.Merge(model.objectWillChange, settings.objectWillChange)
             .receive(on: DispatchQueue.main)
             .sink { [weak self] in self?.renderButton() }
         renderButton()
@@ -42,22 +45,45 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
 
     private func renderButton() {
         guard let button = statusItem.button else { return }
-        if let reading = model.reading {
+        Self.configure(
+            button,
+            icon: menuBarIcon,
+            mode: settings.menuBarDisplay,
+            reading: model.reading,
+            stale: model.isStale,
+            toolTip: model.summary
+        )
+    }
+
+    // 按显示模式设置按钮。数值类模式在没有读数时显示占位的“--”，避免按钮变成空白而无法点击。
+    static func configure(
+        _ button: NSButton,
+        icon: NSImage?,
+        mode: MenuBarDisplay,
+        reading: BatteryReading?,
+        stale: Bool,
+        toolTip: String
+    ) {
+        button.image = mode.showsIcon ? icon : nil
+        button.imagePosition = mode.showsIcon ? (mode.showsPercent ? .imageLeading : .imageOnly) : .noImage
+        if mode.showsPercent {
             let font = NSFont.monospacedDigitSystemFont(ofSize: NSFont.systemFontSize, weight: .regular)
-            button.attributedTitle = Self.menuBarTitle(reading, stale: model.isStale, font: font)
+            button.attributedTitle = menuBarTitle(reading, stale: stale, showsBolt: mode.showsBolt, font: font)
         } else {
             button.title = ""
         }
-        button.toolTip = model.summary
+        button.toolTip = toolTip
     }
 
-    static func menuBarTitle(_ reading: BatteryReading, stale: Bool, font: NSFont) -> NSAttributedString {
+    static func menuBarTitle(_ reading: BatteryReading?, stale: Bool, showsBolt: Bool, font: NSFont) -> NSAttributedString {
         var attributes: [NSAttributedString.Key: Any] = [.font: font]
-        if stale {
+        if reading == nil || stale {
             attributes[.foregroundColor] = NSColor.secondaryLabelColor
         }
-        let title = NSMutableAttributedString(string: "\(reading.percent)%", attributes: attributes)
-        if reading.isCharging, let bolt = boltImage(font: font) {
+        let text = reading.map { "\($0.percent)%" } ?? "--"
+        let title = NSMutableAttributedString(string: text, attributes: attributes)
+        // 过期读数无法判断当前是否在充电，所以不显示闪电。
+        if showsBolt, !stale, let reading, reading.isCharging, let bolt = boltImage(font: font) {
             let attachment = NSTextAttachment()
             attachment.image = bolt
             attachment.bounds = CGRect(x: 0, y: -1, width: bolt.size.width, height: bolt.size.height)
@@ -109,6 +135,7 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
         menu.addItem(launch)
         menu.addItem(menuItem("打开日志文件夹…", #selector(openLogFolder)))
         menu.addItem(.separator())
+        menu.addItem(menuItem("设置…", #selector(showSettings), key: ","))
         menu.addItem(menuItem("关于 MouseBatteryBridge", #selector(showAbout)))
         menu.addItem(.separator())
         menu.addItem(menuItem("退出", #selector(quit), key: "q"))
@@ -125,6 +152,7 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
     @objc private func requestInputMonitoring() { actions.requestInputMonitoring() }
     @objc private func toggleLaunchAtLogin() { actions.toggleLaunchAtLogin() }
     @objc private func openLogFolder() { actions.openLogFolder() }
+    @objc private func showSettings() { actions.showSettings() }
     @objc private func showAbout() { actions.showAbout() }
     @objc private func quit() { actions.quit() }
 

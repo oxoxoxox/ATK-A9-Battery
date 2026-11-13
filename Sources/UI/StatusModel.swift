@@ -16,6 +16,7 @@ struct AppActions {
     let requestInputMonitoring: () -> Void
     let toggleLaunchAtLogin: () -> Void
     let openLogFolder: () -> Void
+    let showSettings: () -> Void
     let showAbout: () -> Void
     let quit: () -> Void
 }

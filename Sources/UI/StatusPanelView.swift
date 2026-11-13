@@ -46,8 +46,16 @@ struct StatusPanelView: View {
                 .padding(.horizontal, 6)
             VStack(spacing: 2) {
                 PanelRow(
-                    icon: "doc.text.magnifyingglass",
+                    icon: "gearshape.fill",
                     tint: .gray,
+                    title: "设置…",
+                    action: actions.showSettings
+                ) {
+                    PanelChevron()
+                }
+                PanelRow(
+                    icon: "doc.text.magnifyingglass",
+                    tint: .brown,
                     title: "打开日志文件夹",
                     action: actions.openLogFolder
                 ) {
