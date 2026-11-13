@@ -57,7 +57,7 @@ open dist/MouseBatteryBridge.app
 
 需要安装包时运行 `./dmg.sh`，它会先执行 `build.sh`，再生成 `dist/MouseBatteryBridge-<版本号>.dmg`（版本号取自 `Info.plist`，内含应用和“应用程序”快捷方式）。
 
-无硬件的协议断言可用 `./test.sh` 单独运行（编译 codec、电量服务与面板状态模型，不编译 UI 窗口和系统发布器）。
+无硬件的协议断言可用 `./test.sh` 单独运行（编译 codec、电量服务、面板状态模型、菜单栏显示规则与设置存储，不编译窗口和系统发布器）。
 
 构建脚本默认使用 ad-hoc 签名，不需要开发者证书。产物位于 `dist/MouseBatteryBridge.app`。如果本机有开发证书，建议用稳定身份构建，避免每次重新编译后都要重新授予输入监控权限：
 

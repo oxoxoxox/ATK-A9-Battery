@@ -1,7 +1,7 @@
 import Combine
 import Foundation
 
-// 菜单栏按钮上鼠标图标旁边显示的内容。
+// 菜单栏按钮上显示的内容：图标、电量数值、充电闪电的组合。
 enum MenuBarDisplay: String, CaseIterable, Identifiable {
     case iconOnly
     case percentWithBolt
@@ -36,7 +36,10 @@ enum MenuBarDisplay: String, CaseIterable, Identifiable {
     }
 
     var showsPercent: Bool {
-        self != .iconOnly
+        switch self {
+        case .percentWithBolt, .iconPercentWithBolt, .iconPercent: return true
+        case .iconOnly: return false
+        }
     }
 
     var showsBolt: Bool {

@@ -55,7 +55,7 @@ struct StatusPanelView: View {
                 }
                 PanelRow(
                     icon: "doc.text.magnifyingglass",
-                    tint: .brown,
+                    tint: .gray,
                     title: "打开日志文件夹",
                     action: actions.openLogFolder
                 ) {

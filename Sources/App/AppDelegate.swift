@@ -49,7 +49,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         )
     }
 
-    // 没有可见菜单栏，主菜单只为关于窗口和面板提供 ⌘Q、⌘W 快捷键。
+    // 没有可见菜单栏，主菜单只为关于、设置窗口和面板提供 ⌘Q、⌘W、⌘, 快捷键。
     private func makeMainMenu() -> NSMenu {
         let mainMenu = NSMenu()
 
