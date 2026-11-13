@@ -7,6 +7,8 @@ private let nearcastGroupKey = "nearcastGroupID"
 final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
     private let batteryService = BatteryService()
+    private let queryQueue = DispatchQueue(label: "local.atka9.MouseBatteryBridge.query")
+    private var isQuerying = false
     private var timer: Timer?
     private var powerSource: PowerSource?
     private var nearcast: NearcastSender?
@@ -38,15 +40,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         statusItem.button?.image?.isTemplate = true
 
         // 首次成功读数前没有 identity，startNearcastIfConfigured 会直接 return；
-        // 读数成功后 updateBattery 里会再次调用。
+        // 读数成功后 handle 里会再次调用。
         startNearcastIfConfigured()
-        DispatchQueue.main.async { [weak self] in self?.updateBattery() }
+        DispatchQueue.main.async { [weak self] in self?.pollBattery() }
         DispatchQueue.main.asyncAfter(deadline: .now() + 5) { [weak self] in
             guard let self, self.lastSnapshot == nil else { return }
-            self.updateBattery()
+            self.pollBattery()
         }
         timer = Timer.scheduledTimer(withTimeInterval: batteryService.queryInterval, repeats: true) { [weak self] _ in
-            self?.updateBattery()
+            self?.pollBattery()
         }
     }
 
@@ -82,8 +84,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
     }
 
-    private func updateBattery() {
-        guard let snapshot = batteryService.update() else { return }
+    // HID 查询会阻塞等待回包（最长数秒），放到后台队列，避免卡住菜单栏和弹出面板。
+    private func pollBattery() {
+        guard !isQuerying else { return }
+        isQuerying = true
+        let service = batteryService
+        queryQueue.async { [weak self] in
+            let update = service.update()
+            DispatchQueue.main.async { self?.handle(update) }
+        }
+    }
+
+    private func handle(_ update: BatteryUpdate) {
+        isQuerying = false
+        guard case .reading(let snapshot) = update else { return }
         lastSnapshot = snapshot
         do {
             if powerSource == nil { powerSource = try PowerSource() }
@@ -98,7 +112,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private func startNearcastIfConfigured() {
         guard nearcast == nil,
               let groupID = UserDefaults.standard.string(forKey: nearcastGroupKey),
-              let identity = lastSnapshot?.identity ?? batteryService.lastSnapshot?.identity
+              let identity = lastSnapshot?.identity
         else { return }
         guard let sender = NearcastSender(groupID: groupID, identity: identity, requestRefresh: refreshAirBattery) else { return }
         nearcast = sender
