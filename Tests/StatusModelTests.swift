@@ -87,4 +87,9 @@ func runStatusModelTests() {
     let permissionButConnected = model(permission: false)
     permissionButConnected.apply(reading(72))
     check(permissionButConnected.headline.text == "电量正常", "live reading wins over stale permission flag")
+
+    check(AirBatteryState.notConfigured.label == "未配置", "AirBattery not configured label")
+    check(AirBatteryState.waitingForReading.label == "等待读数", "AirBattery waiting label")
+    check(AirBatteryState.enabled.label == "已启用", "AirBattery enabled label")
+    check(AirBatteryState.invalidGroup.label == "群组 ID 无效", "AirBattery invalid group label")
 }

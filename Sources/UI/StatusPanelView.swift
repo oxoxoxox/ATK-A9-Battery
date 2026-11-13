@@ -39,7 +39,7 @@ struct StatusPanelView: View {
                     icon: "antenna.radiowaves.left.and.right",
                     tint: .teal,
                     title: "AirBattery 同步",
-                    detail: model.nearcastConfigured ? "已启用" : "未配置"
+                    detail: model.airBattery.label
                 )
             }
             Divider()

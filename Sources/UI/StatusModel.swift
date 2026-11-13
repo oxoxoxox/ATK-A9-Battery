@@ -42,6 +42,22 @@ struct StatusHeadline {
     let tone: StatusTone
 }
 
+enum AirBatteryState: Equatable {
+    case notConfigured
+    case waitingForReading
+    case enabled
+    case invalidGroup
+
+    var label: String {
+        switch self {
+        case .notConfigured: return "未配置"
+        case .waitingForReading: return "等待读数"
+        case .enabled: return "已启用"
+        case .invalidGroup: return "群组 ID 无效"
+        }
+    }
+}
+
 final class StatusModel: ObservableObject {
     @Published var deviceName: String
     @Published private(set) var connection: ConnectionState = .searching
@@ -50,7 +66,7 @@ final class StatusModel: ObservableObject {
     @Published var isRefreshing = false
     @Published var inputMonitoringGranted = false
     @Published var launchAtLogin = false
-    @Published var nearcastConfigured = false
+    @Published var airBattery: AirBatteryState = .notConfigured
 
     init(deviceName: String) {
         self.deviceName = deviceName

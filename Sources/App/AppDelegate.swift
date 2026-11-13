@@ -79,7 +79,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func refreshSystemState() {
         model.inputMonitoringGranted = inputMonitoringGranted
         model.launchAtLogin = launchAtLoginEnabled
-        model.nearcastConfigured = UserDefaults.standard.string(forKey: nearcastGroupKey) != nil
+        model.airBattery = airBatteryState
+    }
+
+    // 以实际启动的 NearcastSender 为准：配置存在但发送器没启动，说明群组 ID 无效或还没读到第一次电量。
+    private var airBatteryState: AirBatteryState {
+        guard UserDefaults.standard.string(forKey: nearcastGroupKey) != nil else { return .notConfigured }
+        if nearcast != nil { return .enabled }
+        return lastSnapshot == nil ? .waitingForReading : .invalidGroup
     }
 
     private func requestInputMonitoring() {
