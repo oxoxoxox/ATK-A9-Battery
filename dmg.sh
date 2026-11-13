@@ -3,7 +3,8 @@ set -euo pipefail
 
 project_dir=${0:A:h}
 app="$project_dir/dist/MouseBatteryBridge.app"
-dmg="$project_dir/dist/MouseBatteryBridge.dmg"
+version=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$project_dir/Info.plist")
+dmg="$project_dir/dist/MouseBatteryBridge-$version.dmg"
 
 "$project_dir/build.sh"
 

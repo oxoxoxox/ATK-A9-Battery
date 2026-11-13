@@ -8,7 +8,7 @@
 
 ## 下载与启动
 
-1. 从 Releases 下载 `MouseBatteryBridge.dmg`（或 `MouseBatteryBridge.app.zip`），打开后把应用拖到“应用程序”。自行打包 DMG 见下文“从源码构建”。
+1. 从 Releases 下载 `MouseBatteryBridge-<版本号>.dmg`（或 `MouseBatteryBridge.app.zip`），打开后把应用拖到“应用程序”。自行打包 DMG 见下文“从源码构建”。
 2. 本项目没有 Apple Developer ID 签名和公证。若 macOS 提示应用已损坏或无法验证开发者，只移除本应用的下载隔离属性：
 
    ```bash
@@ -55,7 +55,7 @@ AirBattery 不是必需的；macOS 电池小组件可由本程序独立更新。
 open dist/MouseBatteryBridge.app
 ```
 
-需要安装包时运行 `./dmg.sh`，它会先执行 `build.sh`，再生成 `dist/MouseBatteryBridge.dmg`（内含应用和“应用程序”快捷方式）。
+需要安装包时运行 `./dmg.sh`，它会先执行 `build.sh`，再生成 `dist/MouseBatteryBridge-<版本号>.dmg`（版本号取自 `Info.plist`，内含应用和“应用程序”快捷方式）。
 
 无硬件的协议断言可用 `./test.sh` 单独运行（编译 codec、电量服务与面板状态模型，不编译 UI 窗口和系统发布器）。
 
