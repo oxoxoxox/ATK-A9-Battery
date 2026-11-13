@@ -2,20 +2,20 @@
 
 让 macOS 电池小组件和 [AirBattery](https://github.com/lihaoyun6/AirBattery) 显示 ATK A9 Ultra Max三模 的 2.4G 模式电量。
 
-程序直接读取接收器的私有 HID 电量报告，每 10 秒更新一次电量和充电状态，并在菜单栏提供权限状态、开机启动和退出选项。它不会修改 AirBattery，也不会写入 AirBattery 的容器目录。
+程序直接读取接收器的私有 HID 电量报告，每 10 秒更新一次电量和充电状态。菜单栏会显示电量百分比（充电时带闪电图标）；点击图标弹出悬浮面板，查看电量环、连接状态、输入监控授权、开机启动和 AirBattery 同步状态，并可立即刷新、打开日志文件夹、查看关于页面或退出；右键图标则打开系统风格的快捷菜单。它不会修改 AirBattery，也不会写入 AirBattery 的容器目录。
 
 ![macOS 电池小组件显示 ATK A9 Ultra Max三模 电量](assets/macos-battery-widgets.png)
 
 ## 下载与启动
 
-1. 从 Releases 下载 `MouseBatteryBridge.app.zip`，解压后把应用拖到“应用程序”。
+1. 从 Releases 下载 `MouseBatteryBridge.dmg`（或 `MouseBatteryBridge.app.zip`），打开后把应用拖到“应用程序”。自行打包 DMG 见下文“从源码构建”。
 2. 本项目没有 Apple Developer ID 签名和公证。若 macOS 提示应用已损坏或无法验证开发者，只移除本应用的下载隔离属性：
 
    ```bash
    sudo xattr -dr com.apple.quarantine /Applications/MouseBatteryBridge.app
    ```
 
-3. 启动应用，点击菜单栏鼠标图标里的“输入监控授权…”，再到“系统设置 → 隐私与安全性 → 输入监控”允许“MouseBatteryBridge for ATK A9 Ultra Max三模”。授权后重新启动应用。
+3. 启动应用，点击菜单栏鼠标图标打开面板，在“输入监控”一行点击“去授权”（右键菜单中也有“输入监控授权…”），再到“系统设置 → 隐私与安全性 → 输入监控”允许“MouseBatteryBridge for ATK A9 Ultra Max三模”。授权后重新启动应用。
 
 不要使用 `spctl --master-disable` 全局关闭 Gatekeeper。
 
@@ -55,12 +55,15 @@ AirBattery 不是必需的；macOS 电池小组件可由本程序独立更新。
 open dist/MouseBatteryBridge.app
 ```
 
+需要安装包时运行 `./dmg.sh`，它会先执行 `build.sh`，再生成 `dist/MouseBatteryBridge.dmg`（内含应用和“应用程序”快捷方式）。
+
 无硬件的协议断言可用 `./test.sh` 单独运行（只编译 codec 相关文件）。
 
 构建脚本默认使用 ad-hoc 签名，不需要开发者证书。产物位于 `dist/MouseBatteryBridge.app`。如果本机有开发证书，建议用稳定身份构建，避免每次重新编译后都要重新授予输入监控权限：
 
 ```bash
 CODE_SIGN_IDENTITY="Apple Development: 你的证书名称" ./build.sh
+CODE_SIGN_IDENTITY="Apple Development: 你的证书名称" ./dmg.sh
 ```
 
 ## 代码结构
@@ -71,7 +74,8 @@ Sources/
   HID/        # VID/PID/Usage 匹配、IOKit 打开/发送/等待
   Devices/    # 每只鼠标一个 Provider（ATK A9 用 CompxCodec 解析私有协议）
   Publishers/ # 系统电源项（IOPS）与 AirBattery Nearcast
-  App/        # 菜单栏、权限、定时器、接线
+  UI/         # 菜单栏图标与百分比、悬浮面板（SwiftUI）、关于窗口、状态模型
+  App/        # 生命周期、定时器（后台查询）、权限与开机启动动作、接线
 Tests/        # 无硬件的 CompxCodec 断言
 ```
 
