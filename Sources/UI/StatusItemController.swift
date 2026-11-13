@@ -7,17 +7,17 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
     private let model: StatusModel
     private let actions: AppActions
     private let popover = NSPopover()
+    private let panelHost: NSHostingController<StatusPanelView>
     private var closedAt: Date?
     private var cancellable: AnyCancellable?
 
     init(model: StatusModel, actions: AppActions) {
         self.model = model
         self.actions = actions
+        panelHost = NSHostingController(rootView: StatusPanelView(model: model, actions: actions))
         super.init()
 
-        let host = NSHostingController(rootView: StatusPanelView(model: model, actions: actions))
-        host.sizingOptions = [.preferredContentSize]
-        popover.contentViewController = host
+        popover.contentViewController = panelHost
         popover.behavior = .transient
         popover.animates = true
         popover.delegate = self
@@ -136,6 +136,8 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
         // 面板因点击状态栏按钮而关闭后，紧随其后的鼠标抬起会再次进入这里，忽略它以免刚关又重开。
         if let closedAt, Date().timeIntervalSince(closedAt) < 0.25 { return }
         actions.willOpenPanel()
+        // 状态会变（例如出现两行的提示文字），每次弹出前按当前内容重新量尺寸。
+        popover.contentSize = panelHost.view.fittingSize
         popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
         NSApp.bringToFront()
     }
