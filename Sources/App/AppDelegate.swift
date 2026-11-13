@@ -8,7 +8,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let batteryService = BatteryService()
     private let queryQueue = DispatchQueue(label: "local.atka9.MouseBatteryBridge.query")
     private lazy var model = StatusModel(deviceName: batteryService.fallbackDeviceName)
-    private var statusItem: StatusItemController?
+    private var statusController: StatusItemController?
     private let aboutWindow = AboutWindowController()
     private var isQuerying = false
     private var timer: Timer?
@@ -19,7 +19,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
         NSApp.mainMenu = makeMainMenu()
-        statusItem = StatusItemController(model: model, actions: makeActions())
+        statusController = StatusItemController(model: model, actions: makeActions())
 
         // 首次成功读数前没有 identity，startNearcastIfConfigured 会直接 return；
         // 读数成功后 handle 里会再次调用。

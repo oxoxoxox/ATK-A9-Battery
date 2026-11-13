@@ -6,7 +6,7 @@ enum BatteryUpdate {
     case failed(String)
 }
 
-// 只能在同一个串行队列上调用：Provider 内部持有 HID 会话与版本日志状态。
+// 只能在同一个串行队列上调用：ATKA9Provider 的版本日志标记与 HIDSession 的设备列表标记都没有加锁。
 final class BatteryService {
     private let providers: [BatteryProvider]
 
