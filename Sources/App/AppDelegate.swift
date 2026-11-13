@@ -18,6 +18,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
+        NSApp.mainMenu = makeMainMenu()
         statusItem = StatusItemController(model: model, actions: makeActions())
 
         // 首次成功读数前没有 identity，startNearcastIfConfigured 会直接 return；
@@ -40,9 +41,36 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             requestInputMonitoring: { [weak self] in self?.requestInputMonitoring() },
             toggleLaunchAtLogin: { [weak self] in self?.toggleLaunchAtLogin() },
             openLogFolder: { [weak self] in self?.openLogFolder() },
-            showAbout: { [weak self] in self?.aboutWindow.show() },
+            showAbout: { [weak self] in self?.showAbout() },
             quit: { NSApp.terminate(nil) }
         )
+    }
+
+    // 没有可见菜单栏，主菜单只为关于窗口和面板提供 ⌘Q、⌘W 快捷键。
+    private func makeMainMenu() -> NSMenu {
+        let mainMenu = NSMenu()
+
+        let appMenu = NSMenu()
+        let about = NSMenuItem(title: "关于 MouseBatteryBridge", action: #selector(showAbout), keyEquivalent: "")
+        about.target = self
+        appMenu.addItem(about)
+        appMenu.addItem(.separator())
+        appMenu.addItem(NSMenuItem(title: "退出 MouseBatteryBridge", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
+        let appItem = NSMenuItem()
+        appItem.submenu = appMenu
+        mainMenu.addItem(appItem)
+
+        let windowMenu = NSMenu(title: "窗口")
+        windowMenu.addItem(NSMenuItem(title: "关闭", action: #selector(NSWindow.performClose(_:)), keyEquivalent: "w"))
+        let windowItem = NSMenuItem()
+        windowItem.submenu = windowMenu
+        mainMenu.addItem(windowItem)
+
+        return mainMenu
+    }
+
+    @objc private func showAbout() {
+        aboutWindow.show()
     }
 
     private var launchAtLoginEnabled: Bool { SMAppService.mainApp.status == .enabled }

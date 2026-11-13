@@ -29,7 +29,7 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
             button.imagePosition = .imageLeading
             button.target = self
             button.action = #selector(buttonClicked)
-            button.sendAction(on: [.leftMouseUp])
+            button.sendAction(on: [.leftMouseUp, .rightMouseUp])
         }
 
         // objectWillChange 早于属性写入，切回主队列后再读取即为最新值。
@@ -75,8 +75,57 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
     }
 
     @objc private func buttonClicked() {
-        togglePanel()
+        if NSApp.currentEvent?.type == .rightMouseUp {
+            showContextMenu()
+        } else {
+            togglePanel()
+        }
     }
+
+    private func showContextMenu() {
+        guard let button = statusItem.button, let event = NSApp.currentEvent else { return }
+        popover.performClose(nil)
+        actions.willOpenPanel()
+        NSMenu.popUpContextMenu(makeContextMenu(), with: event, for: button)
+    }
+
+    private func makeContextMenu() -> NSMenu {
+        let menu = NSMenu()
+        let summary = NSMenuItem(title: model.summary, action: nil, keyEquivalent: "")
+        summary.isEnabled = false
+        menu.addItem(summary)
+        menu.addItem(.separator())
+        menu.addItem(menuItem("立即刷新", #selector(refreshNow), key: "r"))
+        menu.addItem(.separator())
+        let permission = menuItem(
+            model.inputMonitoringGranted ? "输入监控已授权" : "输入监控授权…",
+            #selector(requestInputMonitoring)
+        )
+        permission.isEnabled = !model.inputMonitoringGranted
+        menu.addItem(permission)
+        let launch = menuItem("开机启动", #selector(toggleLaunchAtLogin))
+        launch.state = model.launchAtLogin ? .on : .off
+        menu.addItem(launch)
+        menu.addItem(menuItem("打开日志文件夹…", #selector(openLogFolder)))
+        menu.addItem(.separator())
+        menu.addItem(menuItem("关于 MouseBatteryBridge", #selector(showAbout)))
+        menu.addItem(.separator())
+        menu.addItem(menuItem("退出", #selector(quit), key: "q"))
+        return menu
+    }
+
+    private func menuItem(_ title: String, _ action: Selector, key: String = "") -> NSMenuItem {
+        let item = NSMenuItem(title: title, action: action, keyEquivalent: key)
+        item.target = self
+        return item
+    }
+
+    @objc private func refreshNow() { actions.refresh() }
+    @objc private func requestInputMonitoring() { actions.requestInputMonitoring() }
+    @objc private func toggleLaunchAtLogin() { actions.toggleLaunchAtLogin() }
+    @objc private func openLogFolder() { actions.openLogFolder() }
+    @objc private func showAbout() { actions.showAbout() }
+    @objc private func quit() { actions.quit() }
 
     private func togglePanel() {
         guard let button = statusItem.button else { return }
