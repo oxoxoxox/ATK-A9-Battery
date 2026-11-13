@@ -124,6 +124,7 @@ struct StatusPanelView: View {
         .foregroundStyle(.secondary)
         .disabled(model.isRefreshing)
         .help("立即刷新")
+        .accessibilityLabel("立即刷新")
     }
 }
 

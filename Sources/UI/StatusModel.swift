@@ -61,6 +61,11 @@ final class StatusModel: ObservableObject {
         reading != nil && connection != .connected
     }
 
+    // 未授权且读不到数据时，权限才是最可能的原因；已经连上就以实际读数为准。
+    private var needsPermission: Bool {
+        !inputMonitoringGranted && connection != .connected
+    }
+
     func apply(_ update: BatteryUpdate, at date: Date = Date()) {
         isRefreshing = false
         switch update {
@@ -77,7 +82,7 @@ final class StatusModel: ObservableObject {
     }
 
     var headline: StatusHeadline {
-        if !inputMonitoringGranted {
+        if needsPermission {
             return StatusHeadline(text: "需要输入监控授权", symbol: "exclamationmark.triangle.fill", tone: .warning)
         }
         switch connection {
@@ -105,7 +110,7 @@ final class StatusModel: ObservableObject {
     }
 
     var detail: String {
-        if !inputMonitoringGranted {
+        if needsPermission {
             return "在“隐私与安全性 → 输入监控”中允许本应用"
         }
         switch connection {
