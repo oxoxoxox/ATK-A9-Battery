@@ -50,6 +50,7 @@ swiftc "${swift_files[@]}" \
   -framework CoreFoundation \
   -framework MultipeerConnectivity \
   -framework ServiceManagement \
+  -framework SwiftUI \
   -o "$app/Contents/MacOS/MouseBatteryBridge"
 
 codesign --force --deep --sign "$signing_identity" "$app"
