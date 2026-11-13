@@ -8,7 +8,7 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
     private let actions: AppActions
     private let popover = NSPopover()
     private let panelHost: NSHostingController<StatusPanelView>
-    private var closedAt: Date?
+    private var closingEventTime: TimeInterval?
     private var cancellable: AnyCancellable?
 
     init(model: StatusModel, actions: AppActions) {
@@ -29,7 +29,7 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
             button.imagePosition = .imageLeading
             button.target = self
             button.action = #selector(buttonClicked)
-            button.sendAction(on: [.leftMouseUp, .rightMouseUp])
+            button.sendAction(on: [.leftMouseDown, .rightMouseUp])
         }
 
         // objectWillChange 早于属性写入，切回主队列后再读取即为最新值。
@@ -133,8 +133,8 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
             popover.performClose(nil)
             return
         }
-        // 面板因点击状态栏按钮而关闭后，紧随其后的鼠标抬起会再次进入这里，忽略它以免刚关又重开。
-        if let closedAt, Date().timeIntervalSince(closedAt) < 0.25 { return }
+        // NSPopover 在鼠标按下时若点在外部即会关闭；同一次按下触发的点击动作只负责关闭，不再重开。
+        if let timestamp = NSApp.currentEvent?.timestamp, timestamp == closingEventTime { return }
         actions.willOpenPanel()
         // 状态会变（例如出现两行的提示文字），每次弹出前按当前内容重新量尺寸。
         popover.contentSize = panelHost.view.fittingSize
@@ -143,6 +143,6 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
     }
 
     func popoverWillClose(_ notification: Notification) {
-        closedAt = Date()
+        closingEventTime = NSApp.currentEvent?.timestamp
     }
 }
