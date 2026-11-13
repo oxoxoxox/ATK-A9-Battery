@@ -45,7 +45,7 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
 
     private func renderButton() {
         guard let button = statusItem.button else { return }
-        Self.configure(
+        MenuBarButton.configure(
             button,
             icon: menuBarIcon,
             mode: settings.menuBarDisplay,
@@ -53,52 +53,6 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
             stale: model.isStale,
             toolTip: model.summary
         )
-    }
-
-    // 按显示模式设置按钮。数值类模式在没有读数时显示占位的“--”，避免按钮变成空白而无法点击。
-    static func configure(
-        _ button: NSButton,
-        icon: NSImage?,
-        mode: MenuBarDisplay,
-        reading: BatteryReading?,
-        stale: Bool,
-        toolTip: String
-    ) {
-        button.image = mode.showsIcon ? icon : nil
-        button.imagePosition = mode.showsIcon ? (mode.showsPercent ? .imageLeading : .imageOnly) : .noImage
-        if mode.showsPercent {
-            let font = NSFont.monospacedDigitSystemFont(ofSize: NSFont.systemFontSize, weight: .regular)
-            button.attributedTitle = menuBarTitle(reading, stale: stale, showsBolt: mode.showsBolt, font: font)
-        } else {
-            button.title = ""
-        }
-        button.toolTip = toolTip
-    }
-
-    static func menuBarTitle(_ reading: BatteryReading?, stale: Bool, showsBolt: Bool, font: NSFont) -> NSAttributedString {
-        var attributes: [NSAttributedString.Key: Any] = [.font: font]
-        if reading == nil || stale {
-            attributes[.foregroundColor] = NSColor.secondaryLabelColor
-        }
-        let text = reading.map { "\($0.percent)%" } ?? "--"
-        let title = NSMutableAttributedString(string: text, attributes: attributes)
-        // 过期读数无法判断当前是否在充电，所以不显示闪电。
-        if showsBolt, !stale, let reading, reading.isCharging, let bolt = boltImage(font: font) {
-            let attachment = NSTextAttachment()
-            attachment.image = bolt
-            attachment.bounds = CGRect(x: 0, y: -1, width: bolt.size.width, height: bolt.size.height)
-            title.append(NSAttributedString(string: " ", attributes: attributes))
-            title.append(NSAttributedString(attachment: attachment))
-        }
-        return title
-    }
-
-    private static func boltImage(font: NSFont) -> NSImage? {
-        let configuration = NSImage.SymbolConfiguration(pointSize: font.pointSize - 3, weight: .bold)
-        let image = NSImage(systemSymbolName: "bolt.fill", accessibilityDescription: "充电中")?
-            .withSymbolConfiguration(configuration)
-        image?.isTemplate = true
-        return image
     }
 
     @objc private func buttonClicked() {
