@@ -12,16 +12,30 @@ func runMenuBarButtonTests() {
         return button
     }
 
+    func boltImage(_ button: NSButton) -> NSImage? {
+        let title = button.attributedTitle
+        guard title.length > 0 else { return nil }
+        let attachment = title.attribute(.attachment, at: title.length - 1, effectiveRange: nil) as? NSTextAttachment
+        return attachment?.image
+    }
+
     let defaultCharging = render(.iconPercentWithBolt, charging)
     check(defaultCharging.attributedTitle.string == "85% \(bolt)", "default shows percent and bolt while charging")
     check(defaultCharging.image != nil && defaultCharging.imagePosition == .imageLeading, "default shows icon left of the text")
     check(defaultCharging.toolTip == "提示", "tooltip is applied")
+    check(boltImage(defaultCharging)?.accessibilityDescription == "充电中", "charging shows the solid green bolt")
+    check(boltImage(defaultCharging)?.isTemplate == false, "bolt keeps its own color instead of following the menu bar")
 
     let defaultIdle = render(.iconPercentWithBolt, idle)
-    check(defaultIdle.attributedTitle.string == "72%", "default hides bolt when not charging")
+    check(defaultIdle.attributedTitle.string == "72% \(bolt)", "default shows a bolt when not charging")
+    check(boltImage(defaultIdle)?.accessibilityDescription == "未充电", "not charging shows the hollow gray bolt")
 
     let defaultStaleCharging = render(.iconPercentWithBolt, charging, stale: true)
-    check(defaultStaleCharging.attributedTitle.string == "85% \(bolt)", "stale charging reading keeps the bolt as before")
+    check(defaultStaleCharging.attributedTitle.string == "85% \(bolt)", "stale reading keeps the bolt in its last known state")
+    check(boltImage(defaultStaleCharging)?.accessibilityDescription == "充电中", "stale charging reading keeps the green bolt")
+
+    let staleIdle = render(.iconPercentWithBolt, idle, stale: true)
+    check(boltImage(staleIdle)?.accessibilityDescription == "未充电", "stale idle reading keeps the hollow bolt")
 
     let defaultNoReading = render(.iconPercentWithBolt, nil)
     check(defaultNoReading.attributedTitle.string.isEmpty, "default without a reading has no text")
@@ -36,7 +50,7 @@ func runMenuBarButtonTests() {
     check(percentCharging.image == nil && percentCharging.imagePosition == .noImage, "percent with bolt has no icon")
 
     let percentIdle = render(.percentWithBolt, idle)
-    check(percentIdle.attributedTitle.string == "72%", "percent with bolt hides the bolt when not charging")
+    check(percentIdle.attributedTitle.string == "72% \(bolt)", "percent with bolt shows the hollow bolt when not charging")
 
     let percentNoReading = render(.percentWithBolt, nil)
     check(percentNoReading.attributedTitle.string == "--", "percent only mode shows a placeholder without a reading")

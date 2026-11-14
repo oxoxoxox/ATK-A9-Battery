@@ -22,8 +22,8 @@ enum MenuBarDisplay: String, CaseIterable, Identifiable {
     var detail: String {
         switch self {
         case .iconOnly: return "占用空间最少，点击图标查看详情"
-        case .percentWithBolt: return "充电时在数值后显示闪电"
-        case .iconPercentWithBolt: return "默认。充电时在数值后显示闪电"
+        case .percentWithBolt: return "闪电：充电时绿色，未充电时灰色"
+        case .iconPercentWithBolt: return "默认。闪电：充电时绿色，未充电时灰色"
         case .iconPercent: return "数值后不显示闪电"
         }
     }

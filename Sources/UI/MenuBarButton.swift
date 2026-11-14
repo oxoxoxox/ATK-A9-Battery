@@ -30,7 +30,7 @@ enum MenuBarButton {
             attributes[.foregroundColor] = NSColor.secondaryLabelColor
         }
         let title = NSMutableAttributedString(string: reading.map { "\($0.percent)%" } ?? "--", attributes: attributes)
-        if showsBolt, let reading, reading.isCharging, let bolt = boltImage(font: font) {
+        if showsBolt, let reading, let bolt = boltImage(font: font, charging: reading.isCharging) {
             let attachment = NSTextAttachment()
             attachment.image = bolt
             attachment.bounds = CGRect(x: 0, y: -1, width: bolt.size.width, height: bolt.size.height)
@@ -40,11 +40,16 @@ enum MenuBarButton {
         return title
     }
 
-    private static func boltImage(font: NSFont) -> NSImage? {
+    // 充电时为绿色实心闪电，未充电时为灰色空心闪电；颜色固定，不随菜单栏主题变化，所以不是模板图标。
+    private static func boltImage(font: NSFont, charging: Bool) -> NSImage? {
+        let color: NSColor = charging ? .systemGreen : .secondaryLabelColor
         let configuration = NSImage.SymbolConfiguration(pointSize: font.pointSize - 3, weight: .bold)
-        let image = NSImage(systemSymbolName: "bolt.fill", accessibilityDescription: "充电中")?
-            .withSymbolConfiguration(configuration)
-        image?.isTemplate = true
+            .applying(NSImage.SymbolConfiguration(hierarchicalColor: color))
+        let image = NSImage(
+            systemSymbolName: charging ? "bolt.fill" : "bolt",
+            accessibilityDescription: charging ? "充电中" : "未充电"
+        )?.withSymbolConfiguration(configuration)
+        image?.isTemplate = false
         return image
     }
 }

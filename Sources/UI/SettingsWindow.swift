@@ -9,7 +9,7 @@ struct SettingsView: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text("菜单栏显示")
                     .font(.system(size: 15, weight: .semibold))
-                Text("选择鼠标图标旁边显示的内容，修改后立即生效。")
+                Text("选择菜单栏上显示的内容，修改后立即生效。")
                     .font(.callout)
                     .foregroundStyle(.secondary)
             }
@@ -20,7 +20,7 @@ struct SettingsView: View {
                     }
                 }
             }
-            Text("预览使用示例数值 86%（充电中）；闪电只在真实充电时出现。")
+            Text("预览为示例数值 86%（充电中）。闪电：充电时绿色实心，未充电时灰色空心。")
                 .font(.caption)
                 .foregroundStyle(.tertiary)
         }
@@ -83,6 +83,7 @@ private struct MenuBarPreview: View {
             if mode.showsBolt {
                 Image(systemName: "bolt.fill")
                     .font(.system(size: 9, weight: .bold))
+                    .foregroundStyle(Color.green)
             }
         }
         .font(.system(size: 13))
