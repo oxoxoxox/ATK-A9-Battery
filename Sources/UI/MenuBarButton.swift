@@ -30,7 +30,9 @@ enum MenuBarButton {
             attributes[.foregroundColor] = NSColor.secondaryLabelColor
         }
         let title = NSMutableAttributedString(string: reading.map { "\($0.percent)%" } ?? "--", attributes: attributes)
-        if showsBolt, let reading, let bolt = boltImage(font: font, charging: reading.isCharging) {
+        if showsBolt, let reading {
+            let state: BoltState = stale ? .unknown : (reading.isCharging ? .charging : .idle)
+            guard let bolt = boltImage(font: font, state: state) else { return title }
             let attachment = NSTextAttachment()
             attachment.image = bolt
             attachment.bounds = CGRect(x: 0, y: -1, width: bolt.size.width, height: bolt.size.height)
@@ -40,14 +42,27 @@ enum MenuBarButton {
         return title
     }
 
-    // 充电时为绿色实心闪电，未充电时为灰色空心闪电；颜色固定，不随菜单栏主题变化，所以不是模板图标。
-    private static func boltImage(font: NSFont, charging: Bool) -> NSImage? {
+    private enum BoltState {
+        case charging
+        case idle
+        case unknown
+    }
+
+    // 充电时为绿色实心闪电；未充电或未连接（充电状态未知）时为灰色空心闪电。颜色固定，不随菜单栏主题变化，所以不是模板图标。
+    private static func boltImage(font: NSFont, state: BoltState) -> NSImage? {
+        let charging = state == .charging
         let color: NSColor = charging ? .systemGreen : .secondaryLabelColor
+        let description: String
+        switch state {
+        case .charging: description = "充电中"
+        case .idle: description = "未充电"
+        case .unknown: description = "未连接，充电状态未知"
+        }
         let configuration = NSImage.SymbolConfiguration(pointSize: font.pointSize - 3, weight: .bold)
             .applying(NSImage.SymbolConfiguration(hierarchicalColor: color))
         let image = NSImage(
             systemSymbolName: charging ? "bolt.fill" : "bolt",
-            accessibilityDescription: charging ? "充电中" : "未充电"
+            accessibilityDescription: description
         )?.withSymbolConfiguration(configuration)
         image?.isTemplate = false
         return image

@@ -31,11 +31,12 @@ func runMenuBarButtonTests() {
     check(boltImage(defaultIdle)?.accessibilityDescription == "未充电", "not charging shows the hollow gray bolt")
 
     let defaultStaleCharging = render(.iconPercentWithBolt, charging, stale: true)
-    check(defaultStaleCharging.attributedTitle.string == "85% \(bolt)", "stale reading keeps the bolt in its last known state")
-    check(boltImage(defaultStaleCharging)?.accessibilityDescription == "充电中", "stale charging reading keeps the green bolt")
+    check(defaultStaleCharging.attributedTitle.string == "85% \(bolt)", "stale reading keeps the bolt")
+    check(boltImage(defaultStaleCharging)?.accessibilityDescription == "未连接，充电状态未知", "stale reading shows the hollow gray bolt even if it was charging")
+    check(boltImage(defaultStaleCharging)?.isTemplate == false, "stale bolt keeps its fixed gray colour")
 
     let staleIdle = render(.iconPercentWithBolt, idle, stale: true)
-    check(boltImage(staleIdle)?.accessibilityDescription == "未充电", "stale idle reading keeps the hollow bolt")
+    check(boltImage(staleIdle)?.accessibilityDescription == "未连接，充电状态未知", "stale idle reading shows the hollow gray bolt")
 
     let defaultNoReading = render(.iconPercentWithBolt, nil)
     check(defaultNoReading.attributedTitle.string.isEmpty, "default without a reading has no text")
