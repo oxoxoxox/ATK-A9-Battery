@@ -66,6 +66,22 @@ CODE_SIGN_IDENTITY="Apple Development: 你的证书名称" ./build.sh
 CODE_SIGN_IDENTITY="Apple Development: 你的证书名称" ./dmg.sh
 ```
 
+## 发布
+
+版本号保存在 `Info.plist` 的 `CFBundleShortVersionString`（版本）和 `CFBundleVersion`（构建号）。发版步骤：
+
+1. 修改 `Info.plist` 的两个版本字段，并在 `CHANGELOG.md` 中加入同版本小节；
+2. 提交后打标签并推送：
+
+   ```bash
+   git tag -a v2.0.1 -m "MouseBatteryBridge 2.0.1 (build 6)"
+   git push origin v2.0.1
+   ```
+
+推送 `v` 开头的标签会触发 `.github/workflows/release.yml`：在 `xcode-27` 镜像（macOS 27，arm64）上运行 `./test.sh` 和 `./dmg.sh`，校验产物为纯 arm64，再把 `MouseBatteryBridge-<版本号>.dmg` 与 `MouseBatteryBridge.app.zip` 上传到对应的 GitHub Release。Release 说明取自 `CHANGELOG.md` 的同版本小节；标签与 `Info.plist` 版本不一致时工作流会直接失败。
+
+也可以在 Actions 页面手动运行该工作流并填写 tag 重新发布，已存在的 Release 只覆盖上传产物。
+
 ## 代码结构
 
 ```
