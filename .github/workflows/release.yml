@@ -75,14 +75,29 @@ jobs:
           ls -lh dist
 
       - name: Extract release notes from CHANGELOG
+        env:
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
         run: |
           set -euo pipefail
           notes="$RUNNER_TEMP/release-notes.md"
-          awk -v ver="$APP_VERSION" '
-            $0 ~ "^## \\[" ver "\\]" { found = 1; next }
-            found && /^## \[/ { exit }
-            found { print }
-          ' CHANGELOG.md > "$notes"
+          changelog="CHANGELOG.md"
+          : > "$notes"
+          # 早于 CHANGELOG.md 的旧标签，回退到默认分支上的版本
+          if [ ! -f "$changelog" ]; then
+            echo "tag 中不含 CHANGELOG.md，尝试使用 $DEFAULT_BRANCH 上的版本" >&2
+            git fetch --depth=1 origin "$DEFAULT_BRANCH" >/dev/null 2>&1 || true
+            if git cat-file -e "FETCH_HEAD:CHANGELOG.md" 2>/dev/null; then
+              changelog="$RUNNER_TEMP/CHANGELOG.md"
+              git show "FETCH_HEAD:CHANGELOG.md" > "$changelog"
+            fi
+          fi
+          if [ -f "$changelog" ]; then
+            awk -v ver="$APP_VERSION" '
+              $0 ~ "^## \\[" ver "\\]" { found = 1; next }
+              found && /^## \[/ { exit }
+              found { print }
+            ' "$changelog" > "$notes"
+          fi
           if grep -q '[^[:space:]]' "$notes"; then
             echo "HAS_NOTES=1" >> "$GITHUB_ENV"
             cat "$notes"
