@@ -74,8 +74,8 @@ CODE_SIGN_IDENTITY="Apple Development: 你的证书名称" ./dmg.sh
 2. 提交后打标签并推送：
 
    ```bash
-   git tag -a v2.1.0 -m "MouseBatteryBridge 2.1.0 (build 7)"
-   git push origin v2.1.0
+   git tag -a v2.1.1 -m "MouseBatteryBridge 2.1.1 (build 8)"
+   git push origin v2.1.1
    ```
 
 推送 `v` 开头的标签会触发 `.github/workflows/release.yml`：在 `xcode-27` 镜像（macOS 27，arm64）上运行 `./test.sh` 和 `./dmg.sh`，校验产物为纯 arm64，再把 `MouseBatteryBridge-<版本号>.dmg` 与 `MouseBatteryBridge.app.zip` 上传到对应的 GitHub Release。Release 说明取自 `CHANGELOG.md` 的同版本小节；标签与 `Info.plist` 版本不一致时工作流会直接失败。
