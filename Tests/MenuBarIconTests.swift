@@ -22,4 +22,16 @@ func runMenuBarIconTests() {
     let rep = image.representations.compactMap { $0 as? NSBitmapImageRep }.first
     check(rep?.pixelsWide == 44 && rep?.pixelsHigh == 44, "the icon renders at 2x for Retina menu bars")
     check(rep?.hasAlpha == true, "the icon keeps a transparent background")
+
+    let darkAppearance = NSAppearance(named: .darkAqua)!
+    let lightAppearance = NSAppearance(named: .aqua)!
+    let dark = MenuBarIcon.RenderState(percent: 45, isCharging: false, stale: false, appearance: darkAppearance)
+    let same = MenuBarIcon.RenderState(percent: 45, isCharging: false, stale: false, appearance: darkAppearance)
+    let light = MenuBarIcon.RenderState(percent: 45, isCharging: false, stale: false, appearance: lightAppearance)
+    check(dark == same, "identical inputs share one render state")
+    check(dark != light, "a light/dark change forces a redraw")
+    check(dark.isDark && !light.isDark, "render state follows the menu bar appearance")
+    check(dark != MenuBarIcon.RenderState(percent: 46, isCharging: false, stale: false, appearance: darkAppearance), "a percent change forces a redraw")
+    check(dark != MenuBarIcon.RenderState(percent: 45, isCharging: true, stale: false, appearance: darkAppearance), "a charging change forces a redraw")
+    check(dark != MenuBarIcon.RenderState(percent: 45, isCharging: false, stale: true, appearance: darkAppearance), "a stale change forces a redraw")
 }

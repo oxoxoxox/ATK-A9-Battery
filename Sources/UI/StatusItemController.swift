@@ -51,16 +51,37 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
         renderButton()
     }
 
+    // NSStatusItem 每次重绘 replicant 都会调用 setAppearance:，从而再次触发
+    // viewDidChangeEffectiveAppearance；若状态没变仍重设图片，就会和系统重绘互相触发，
+    // 让主线程一直空转。渲染前先比对，保证每个状态只绘制一次。
+    private var renderedState: MenuBarIcon.RenderState?
+
     private func renderButton() {
         guard let button = statusItem.button else { return }
-        let icon = MenuBarIcon.image(
+        let summary = model.summary
+        // 文字只影响 tooltip 和无障碍描述。单独按需更新，避免文字变化也触发一次位图重绘。
+        if button.toolTip != summary {
+            button.toolTip = summary
+            button.setAccessibilityLabel(summary)
+            button.image?.accessibilityDescription = summary
+        }
+        let appearance = button.effectiveAppearance
+        let state = MenuBarIcon.RenderState(
             percent: model.reading?.percent,
             isCharging: model.reading?.isCharging ?? false,
             stale: model.isStale,
-            appearance: button.effectiveAppearance
+            appearance: appearance
         )
-        icon.accessibilityDescription = model.summary
-        MenuBarButton.configure(button, icon: icon, toolTip: model.summary)
+        guard state != renderedState else { return }
+        renderedState = state
+        let icon = MenuBarIcon.image(
+            percent: state.percent,
+            isCharging: state.isCharging,
+            stale: state.stale,
+            appearance: appearance
+        )
+        icon.accessibilityDescription = summary
+        MenuBarButton.configure(button, icon: icon, toolTip: summary)
     }
 
     @objc private func buttonClicked() {

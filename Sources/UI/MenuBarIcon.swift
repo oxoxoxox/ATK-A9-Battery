@@ -21,6 +21,27 @@ enum MenuBarIcon {
         return .normal
     }
 
+    // 菜单栏图标的绘制输入。StatusItemController 用它做重绘去重，
+    // 所以必须与 image(...) 的入参保持一一对应：新增绘制输入却不同步，图标就会静默不刷新。
+    struct RenderState: Equatable {
+        let percent: Int?
+        let isCharging: Bool
+        let stale: Bool
+        let isDark: Bool
+
+        init(percent: Int?, isCharging: Bool, stale: Bool, appearance: NSAppearance) {
+            self.percent = percent
+            self.isCharging = isCharging
+            self.stale = stale
+            self.isDark = MenuBarIcon.isDark(appearance)
+        }
+    }
+
+    // 菜单栏明暗由壁纸决定：去重 key 和实际绘制必须用同一份判定，否则两侧会漂移。
+    static func isDark(_ appearance: NSAppearance) -> Bool {
+        appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
+    }
+
     static func image(
         percent: Int?,
         isCharging: Bool,
@@ -105,8 +126,7 @@ enum MenuBarIcon {
 
     private static func draw(percent: Int?, tone: Tone, appearance: NSAppearance) {
         guard let context = NSGraphicsContext.current?.cgContext else { return }
-        let isDark = appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
-        let palette = palette(tone: tone, isDark: isDark)
+        let palette = palette(tone: tone, isDark: isDark(appearance))
 
         let center = CGPoint(x: size.width / 2, y: ringCenterY)
         let fraction = CGFloat(min(max(percent ?? 0, 0), 100)) / 100
