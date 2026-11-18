@@ -2,8 +2,8 @@ import Foundation
 
 runCompxCodecTests()
 runStatusModelTests()
-runSettingsTests()
 runMenuBarButtonTests()
+runMenuBarIconTests()
 
 if failed {
     fputs("tests failed\n", stderr)

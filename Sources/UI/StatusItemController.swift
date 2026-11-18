@@ -5,21 +5,25 @@ import SwiftUI
 final class StatusItemController: NSObject, NSPopoverDelegate {
     private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
     private let model: StatusModel
-    private let settings: AppSettings
     private let actions: AppActions
     private let popover = NSPopover()
     private let panelHost: NSHostingController<StatusPanelView>
-    private lazy var menuBarIcon: NSImage? = {
-        let image = NSImage(systemSymbolName: "computermouse", accessibilityDescription: "MouseBatteryBridge")
-        image?.isTemplate = true
-        return image
-    }()
+    private let appearanceObserver = AppearanceObserverView(frame: NSRect(x: 0, y: 0, width: 1, height: 1))
     private var closingEventTime: TimeInterval?
     private var cancellable: AnyCancellable?
 
-    init(model: StatusModel, settings: AppSettings, actions: AppActions) {
+    // 菜单栏的明暗由壁纸决定，可能与本应用的 appearance 不同，所以监听按钮实际生效的 appearance。
+    private final class AppearanceObserverView: NSView {
+        var onChange: (() -> Void)?
+
+        override func viewDidChangeEffectiveAppearance() {
+            super.viewDidChangeEffectiveAppearance()
+            onChange?()
+        }
+    }
+
+    init(model: StatusModel, actions: AppActions) {
         self.model = model
-        self.settings = settings
         self.actions = actions
         panelHost = NSHostingController(rootView: StatusPanelView(model: model, actions: actions))
         super.init()
@@ -34,10 +38,14 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
             button.target = self
             button.action = #selector(buttonClicked)
             button.sendAction(on: [.leftMouseDown, .rightMouseUp])
+            appearanceObserver.onChange = { [weak self] in
+                DispatchQueue.main.async { self?.renderButton() }
+            }
+            button.addSubview(appearanceObserver)
         }
 
         // objectWillChange 早于属性写入，切回主队列后再读取即为最新值。
-        cancellable = Publishers.Merge(model.objectWillChange, settings.objectWillChange)
+        cancellable = model.objectWillChange
             .receive(on: DispatchQueue.main)
             .sink { [weak self] in self?.renderButton() }
         renderButton()
@@ -45,14 +53,14 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
 
     private func renderButton() {
         guard let button = statusItem.button else { return }
-        MenuBarButton.configure(
-            button,
-            icon: menuBarIcon,
-            mode: settings.menuBarDisplay,
-            reading: model.reading,
+        let icon = MenuBarIcon.image(
+            percent: model.reading?.percent,
+            isCharging: model.reading?.isCharging ?? false,
             stale: model.isStale,
-            toolTip: model.summary
+            appearance: button.effectiveAppearance
         )
+        icon.accessibilityDescription = model.summary
+        MenuBarButton.configure(button, icon: icon, toolTip: model.summary)
     }
 
     @objc private func buttonClicked() {
@@ -89,7 +97,6 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
         menu.addItem(launch)
         menu.addItem(menuItem("打开日志文件夹…", #selector(openLogFolder)))
         menu.addItem(.separator())
-        menu.addItem(menuItem("设置…", #selector(showSettings), key: ","))
         menu.addItem(menuItem("关于 MouseBatteryBridge", #selector(showAbout)))
         menu.addItem(.separator())
         menu.addItem(menuItem("退出", #selector(quit), key: "q"))
@@ -106,7 +113,6 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
     @objc private func requestInputMonitoring() { actions.requestInputMonitoring() }
     @objc private func toggleLaunchAtLogin() { actions.toggleLaunchAtLogin() }
     @objc private func openLogFolder() { actions.openLogFolder() }
-    @objc private func showSettings() { actions.showSettings() }
     @objc private func showAbout() { actions.showAbout() }
     @objc private func quit() { actions.quit() }
 

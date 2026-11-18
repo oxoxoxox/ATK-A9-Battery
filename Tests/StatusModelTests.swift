@@ -31,7 +31,6 @@ func runStatusModelTests() {
     normal.apply(reading(72))
     check(!normal.isRefreshing, "apply clears refreshing flag")
     check(normal.headline.text == "电量正常", "72% without charging is normal")
-    check(normal.ringTone == .good, "normal reading uses good tone")
     check(!normal.isStale, "fresh reading is not stale")
     check(normal.summary == "测试鼠标 · 72%", "summary shows device and percent")
 
@@ -41,12 +40,24 @@ func runStatusModelTests() {
     check(charging.summary == "测试鼠标 · 85% · 充电中", "summary mentions charging")
 
     let low = model()
-    low.apply(reading(15))
-    check(low.headline.text == "电量偏低" && low.ringTone == .warning, "15% is low")
+    low.apply(reading(40))
+    check(low.headline.text == "电量偏低", "40% is low, matching the icon colour boundary")
+
+    let lowBoundary = model()
+    lowBoundary.apply(reading(41))
+    check(lowBoundary.headline.text == "电量正常", "41% is normal")
 
     let critical = model()
-    critical.apply(reading(6))
-    check(critical.headline.text == "电量极低" && critical.ringTone == .critical, "6% is critical")
+    critical.apply(reading(20))
+    check(critical.headline.text == "电量极低", "20% is critical, matching the icon colour boundary")
+
+    let criticalBoundary = model()
+    criticalBoundary.apply(reading(21))
+    check(criticalBoundary.headline.text == "电量偏低", "21% is still low")
+
+    let veryLow = model()
+    veryLow.apply(reading(6))
+    check(veryLow.headline.text == "电量极低", "6% is critical")
 
     let stale = model()
     stale.apply(reading(64))
@@ -54,7 +65,6 @@ func runStatusModelTests() {
     check(stale.isStale, "receiver lost keeps reading as stale")
     check(stale.headline.text == "未连接接收器", "stale headline says disconnected")
     check(stale.detail.hasPrefix("上次读数"), "stale detail shows last reading time")
-    check(stale.ringTone == .neutral, "stale ring is neutral")
     check(stale.summary == "测试鼠标 · 64%（未连接）", "stale summary is marked")
 
     let notFound = model()

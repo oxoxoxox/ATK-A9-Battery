@@ -1,8 +1,16 @@
 # 更新日志
 
-版本号取自 `Info.plist` 的 `CFBundleShortVersionString`，发布标签形如 `v2.0.1`，与版本号一一对应。推送 `v` 开头的标签会触发 `.github/workflows/release.yml` 构建 arm64 DMG 并发布到 GitHub Release，说明即取自本文件中对应版本的条目。
+版本号取自 `Info.plist` 的 `CFBundleShortVersionString`，发布标签形如 `v2.1.0`，与版本号一一对应。推送 `v` 开头的标签会触发 `.github/workflows/release.yml` 构建 arm64 DMG 并发布到 GitHub Release，说明即取自本文件中对应版本的条目。
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)。
+
+## [2.1.0] - 2026-11-18
+
+### 变更
+
+- 菜单栏图标改为电量环：外圈按比例着色（充电绿色、40% 及以下土黄、20% 及以下橙红，其余随系统明暗显示黑/暖白），充电时环顶显示绿色闪电，中心为鼠标，底部开口处显示百分比数字。
+- 面板顶部的大电量环复用同一套绘制规则，颜色分档与菜单栏一致；状态文案的“电量偏低/极低”阈值也统一为 40% / 20% 及以下。
+- 移除菜单栏显示方式设置与纯文字模式，菜单栏固定显示电量环；设置窗口及其入口一并移除。
 
 ## [2.0.1] - 2026-11-14
 

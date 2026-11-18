@@ -16,7 +16,6 @@ struct AppActions {
     let requestInputMonitoring: () -> Void
     let toggleLaunchAtLogin: () -> Void
     let openLogFolder: () -> Void
-    let showSettings: () -> Void
     let showAbout: () -> Void
     let quit: () -> Void
 }
@@ -120,10 +119,10 @@ final class StatusModel: ObservableObject {
             if reading.isCharging {
                 return StatusHeadline(text: "充电中", symbol: "bolt.fill", tone: .good)
             }
-            if reading.percent <= 10 {
+            if reading.percent <= 20 {
                 return StatusHeadline(text: "电量极低", symbol: nil, tone: .critical)
             }
-            if reading.percent <= 20 {
+            if reading.percent <= 40 {
                 return StatusHeadline(text: "电量偏低", symbol: nil, tone: .warning)
             }
             return StatusHeadline(text: "电量正常", symbol: nil, tone: .good)
@@ -146,14 +145,6 @@ final class StatusModel: ObservableObject {
             guard let updatedAt else { return "" }
             return "更新于 \(time(updatedAt))"
         }
-    }
-
-    var ringTone: StatusTone {
-        guard let reading, !isStale else { return .neutral }
-        if reading.isCharging { return .good }
-        if reading.percent <= 10 { return .critical }
-        if reading.percent <= 20 { return .warning }
-        return .good
     }
 
     // 用于菜单栏提示和右键菜单标题，保持单行。

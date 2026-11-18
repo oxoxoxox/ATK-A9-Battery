@@ -46,14 +46,6 @@ struct StatusPanelView: View {
                 .padding(.horizontal, 6)
             VStack(spacing: 2) {
                 PanelRow(
-                    icon: "gearshape.fill",
-                    tint: .gray,
-                    title: "设置…",
-                    action: actions.showSettings
-                ) {
-                    PanelChevron()
-                }
-                PanelRow(
                     icon: "doc.text.magnifyingglass",
                     tint: .gray,
                     title: "打开日志文件夹",
@@ -90,7 +82,7 @@ struct StatusPanelView: View {
             BatteryRingView(
                 percent: model.reading?.percent,
                 isCharging: model.reading?.isCharging == true,
-                tone: model.ringTone
+                stale: model.isStale
             )
             VStack(alignment: .leading, spacing: 5) {
                 Text(model.deviceName)

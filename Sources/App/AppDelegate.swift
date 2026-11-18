@@ -9,8 +9,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let queryQueue = DispatchQueue(label: "local.atka9.MouseBatteryBridge.query")
     private lazy var model = StatusModel(deviceName: batteryService.fallbackDeviceName)
     private var statusController: StatusItemController?
-    private let settings = AppSettings()
-    private lazy var settingsWindow = SettingsWindowController(settings: settings)
     private let aboutWindow = AboutWindowController()
     private var isQuerying = false
     private var timer: Timer?
@@ -21,7 +19,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
         NSApp.mainMenu = makeMainMenu()
-        statusController = StatusItemController(model: model, settings: settings, actions: makeActions())
+        statusController = StatusItemController(model: model, actions: makeActions())
 
         // 首次成功读数前没有 identity，startNearcastIfConfigured 会直接 return；
         // 读数成功后 handle 里会再次调用。
@@ -43,13 +41,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             requestInputMonitoring: { [weak self] in self?.requestInputMonitoring() },
             toggleLaunchAtLogin: { [weak self] in self?.toggleLaunchAtLogin() },
             openLogFolder: { [weak self] in self?.openLogFolder() },
-            showSettings: { [weak self] in self?.showSettings() },
             showAbout: { [weak self] in self?.showAbout() },
             quit: { NSApp.terminate(nil) }
         )
     }
 
-    // 没有可见菜单栏，主菜单只为关于、设置窗口和面板提供 ⌘Q、⌘W、⌘, 快捷键。
+    // 没有可见菜单栏，主菜单只为关于窗口和面板提供 ⌘Q、⌘W 快捷键。
     private func makeMainMenu() -> NSMenu {
         let mainMenu = NSMenu()
 
@@ -57,10 +54,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let about = NSMenuItem(title: "关于 MouseBatteryBridge", action: #selector(showAbout), keyEquivalent: "")
         about.target = self
         appMenu.addItem(about)
-        appMenu.addItem(.separator())
-        let settingsItem = NSMenuItem(title: "设置…", action: #selector(showSettings), keyEquivalent: ",")
-        settingsItem.target = self
-        appMenu.addItem(settingsItem)
         appMenu.addItem(.separator())
         appMenu.addItem(NSMenuItem(title: "退出 MouseBatteryBridge", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
         let appItem = NSMenuItem()
@@ -74,10 +67,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         mainMenu.addItem(windowItem)
 
         return mainMenu
-    }
-
-    @objc private func showSettings() {
-        settingsWindow.show()
     }
 
     @objc private func showAbout() {

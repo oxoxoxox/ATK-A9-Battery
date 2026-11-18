@@ -1,44 +1,28 @@
+import AppKit
 import SwiftUI
 
+// 面板顶部的大图标与菜单栏使用同一套绘制规则，按 68pt 画布重新渲染。
 struct BatteryRingView: View {
     let percent: Int?
     let isCharging: Bool
-    let tone: StatusTone
+    let stale: Bool
 
-    private var fraction: Double {
-        Double(min(max(percent ?? 0, 0), 100)) / 100
-    }
+    @Environment(\.colorScheme) private var colorScheme
+
+    private static let canvas: CGFloat = 68
 
     var body: some View {
-        ZStack {
-            Circle()
-                .stroke(Color.primary.opacity(0.08), lineWidth: 6)
-            Circle()
-                .trim(from: 0, to: fraction)
-                .stroke(tone.color.gradient, style: StrokeStyle(lineWidth: 6, lineCap: .round))
-                .rotationEffect(.degrees(-90))
-                .animation(.easeInOut(duration: 0.6), value: fraction)
-            HStack(alignment: .firstTextBaseline, spacing: 1) {
-                Text(percent.map { "\($0)" } ?? "--")
-                    .font(.system(size: 20, weight: .semibold, design: .rounded))
-                    .monospacedDigit()
-                if percent != nil {
-                    Text("%")
-                        .font(.system(size: 10, weight: .medium))
-                        .foregroundStyle(.secondary)
-                }
-            }
-        }
-        .frame(width: 68, height: 68)
-        .overlay(alignment: .bottom) {
-            if isCharging {
-                Image(systemName: "bolt.fill")
-                    .font(.system(size: 8, weight: .bold))
-                    .foregroundStyle(.white)
-                    .padding(3)
-                    .background(Circle().fill(StatusTone.good.color.gradient))
-                    .offset(y: 4)
-            }
-        }
+        let appearance = NSAppearance(named: colorScheme == .dark ? .darkAqua : .aqua) ?? NSApp.effectiveAppearance
+        Image(nsImage: MenuBarIcon.image(
+            percent: percent,
+            isCharging: isCharging,
+            stale: stale,
+            appearance: appearance,
+            canvas: Self.canvas
+        ))
+        .resizable()
+        .interpolation(.high)
+        .frame(width: Self.canvas, height: Self.canvas)
+        .accessibilityLabel(percent.map { "电量 \($0)%" } ?? "电量未知")
     }
 }

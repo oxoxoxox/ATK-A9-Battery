@@ -2,7 +2,7 @@
 
 让 macOS 电池小组件和 [AirBattery](https://github.com/lihaoyun6/AirBattery) 显示 ATK A9 Ultra Max三模 的 2.4G 模式电量。
 
-程序直接读取接收器的私有 HID 电量报告，每 10 秒更新一次电量和充电状态。菜单栏显示的内容可以在“设置”中选择：只显示鼠标图标；只显示电量数值和闪电；鼠标图标加电量数值和闪电（默认）；鼠标图标加电量数值。闪电在充电时为绿色实心，未充电时为灰色空心。点击图标弹出悬浮面板，查看电量环、连接状态、输入监控授权、开机启动和 AirBattery 同步状态，并可打开设置、立即刷新、打开日志文件夹、查看关于页面或退出；右键图标则打开系统风格的快捷菜单。它不会修改 AirBattery，也不会写入 AirBattery 的容器目录。
+程序直接读取接收器的私有 HID 电量报告，每 10 秒更新一次电量和充电状态。菜单栏图标是一个电量环：外圈从左下角到右下角按当前电量着色（充电时绿色，40% 及以下为土黄，20% 及以下为橙红，其余为随系统明暗自动切换的黑/暖白），中心是鼠标，底部开口处是百分比数字，充电时环顶显示绿色闪电。点击图标弹出悬浮面板，查看电量环、连接状态、输入监控授权、开机启动和 AirBattery 同步状态，并可立即刷新、打开日志文件夹、查看关于页面或退出；右键图标则打开系统风格的快捷菜单。它不会修改 AirBattery，也不会写入 AirBattery 的容器目录。
 
 ![macOS 电池小组件显示 ATK A9 Ultra Max三模 电量](assets/macos-battery-widgets.png)
 
@@ -57,7 +57,7 @@ open dist/MouseBatteryBridge.app
 
 需要安装包时运行 `./dmg.sh`，它会先执行 `build.sh`，再生成 `dist/MouseBatteryBridge-<版本号>.dmg`（版本号取自 `Info.plist`，内含应用和“应用程序”快捷方式）。
 
-无硬件的协议断言可用 `./test.sh` 单独运行（编译 codec、电量服务、面板状态模型、菜单栏显示规则与设置存储，不编译窗口和系统发布器）。
+无硬件的协议断言可用 `./test.sh` 单独运行（编译 codec、电量服务、面板状态模型、菜单栏图标与按钮规则，不编译窗口和系统发布器）。
 
 构建脚本默认使用 ad-hoc 签名，不需要开发者证书。产物位于 `dist/MouseBatteryBridge.app`。如果本机有开发证书，建议用稳定身份构建，避免每次重新编译后都要重新授予输入监控权限：
 
@@ -74,8 +74,8 @@ CODE_SIGN_IDENTITY="Apple Development: 你的证书名称" ./dmg.sh
 2. 提交后打标签并推送：
 
    ```bash
-   git tag -a v2.0.1 -m "MouseBatteryBridge 2.0.1 (build 6)"
-   git push origin v2.0.1
+   git tag -a v2.1.0 -m "MouseBatteryBridge 2.1.0 (build 7)"
+   git push origin v2.1.0
    ```
 
 推送 `v` 开头的标签会触发 `.github/workflows/release.yml`：在 `xcode-27` 镜像（macOS 27，arm64）上运行 `./test.sh` 和 `./dmg.sh`，校验产物为纯 arm64，再把 `MouseBatteryBridge-<版本号>.dmg` 与 `MouseBatteryBridge.app.zip` 上传到对应的 GitHub Release。Release 说明取自 `CHANGELOG.md` 的同版本小节；标签与 `Info.plist` 版本不一致时工作流会直接失败。
@@ -90,8 +90,7 @@ Sources/
   HID/        # VID/PID/Usage 匹配、IOKit 打开/发送/等待
   Devices/    # 每只鼠标一个 Provider（ATK A9 用 CompxCodec 解析私有协议）
   Publishers/ # 系统电源项（IOPS）与 AirBattery Nearcast
-  Settings/   # 菜单栏显示模式与 UserDefaults 持久化
-  UI/         # 菜单栏图标与百分比、悬浮面板（SwiftUI）、设置与关于窗口、状态模型
+  UI/         # 菜单栏电量环、悬浮面板（SwiftUI）、关于窗口、状态模型
   App/        # 生命周期、定时器（后台查询）、权限与开机启动动作、接线
 Tests/        # 无硬件的 CompxCodec 断言
 ```
